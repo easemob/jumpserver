@@ -68,6 +68,7 @@ INSTALLED_APPS = [
     'audits.apps.AuditsConfig',
     'authentication.apps.AuthenticationConfig',  # authentication
     'applications.apps.ApplicationsConfig',
+    'alicloud.apps.AlicloudConfig',
     'rest_framework',
     'rest_framework_swagger',
     'drf_yasg',
@@ -416,6 +417,13 @@ FILE_UPLOAD_DIRECTORY_PERMISSIONS = 0o755
 # OTP settings
 OTP_ISSUER_NAME = CONFIG.OTP_ISSUER_NAME
 OTP_VALID_WINDOW = CONFIG.OTP_VALID_WINDOW
+
+
+# ALY settings
+ALY_ACCESS_KEY = CONFIG.ALY_ACCESS_KEY
+ALY_ACCESS_SECRET = CONFIG.ALY_ACCESS_SECRET
+ALY_REGION_LIST = CONFIG.ALY_REGION_LIST
+
 
 # Auth LDAP settings
 AUTH_LDAP = False

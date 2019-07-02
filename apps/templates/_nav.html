@@ -27,6 +27,16 @@
         <li id="cmd-filter"><a href="{% url 'assets:cmd-filter-list' %}">{% trans 'Command filters' %}</a></li>
     </ul>
 </li>
+
+<li id="assets">
+    <a>
+        <i class="fa fa-cloud" style="width: 14px"></i> <span class="nav-label">{% trans 'AliCloud' %}</span><span class="fa arrow"></span>
+    </a>
+    <ul class="nav nav-second-level">
+        <li id="alicloud-ecs"><a href="{% url 'alicloud:alicloud-ecs-list' %}">{% trans 'Asset list' %}</a></li>
+    </ul>
+</li>
+
 {% if LICENSE_VALID %}
 <li id="applications">
     <a>

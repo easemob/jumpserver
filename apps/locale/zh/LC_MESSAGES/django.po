@@ -6146,3 +6146,9 @@ msgstr "更新组织"
 
 #~ msgid "MFA setting"
 #~ msgstr "MFA 设置"
+
+msgid "AliCloud"
+msgstr "阿里云"
+
+msgid "Sync asset"
+msgstr "同步资产"

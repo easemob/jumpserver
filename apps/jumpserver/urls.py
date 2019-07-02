@@ -22,6 +22,7 @@ api_v1 = [
    path('authentication/v1/', include('authentication.urls.api_urls', namespace='api-auth')),
    path('common/v1/', include('common.urls.api_urls', namespace='api-common')),
    path('applications/v1/', include('applications.urls.api_urls', namespace='api-applications')),
+   path('alicloud/v1/', include('alicloud.urls.api_urls', namespace='api-alicloud')),
 ]
 
 api_v2 = [
@@ -40,6 +41,7 @@ app_view_patterns = [
     path('orgs/', include('orgs.urls.views_urls', namespace='orgs')),
     path('auth/', include('authentication.urls.view_urls'), name='auth'),
     path('applications/', include('applications.urls.views_urls', namespace='applications')),
+    path('alicloud/', include('alicloud.urls.views_urls', namespace='alicloud'))
 ]
 
 
