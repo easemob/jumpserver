@@ -10,3 +10,31 @@ class NodeEcsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Node
         fields = ['assets']
+
+class NodeSlbSerializer(serializers.ModelSerializer):
+    assets = serializers.PrimaryKeyRelatedField(many=True, queryset=Slb.objects.all())
+
+    class Meta:
+        model = Node
+        fields = ['assets']
+
+class NodeRdsSerializer(serializers.ModelSerializer):
+    assets = serializers.PrimaryKeyRelatedField(many=True, queryset=Rds.objects.all())
+
+    class Meta:
+        model = Node
+        fields = ['assets']
+
+class NodeKvStoreSerializer(serializers.ModelSerializer):
+    assets = serializers.PrimaryKeyRelatedField(many=True, queryset=KvStore.objects.all())
+
+    class Meta:
+        model = Node
+        fields = ['assets']
+
+class NodeOssSerializer(serializers.ModelSerializer):
+    assets = serializers.PrimaryKeyRelatedField(many=True, queryset=Oss.objects.all())
+
+    class Meta:
+        model = Node
+        fields = ['assets']

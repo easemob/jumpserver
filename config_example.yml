@@ -74,3 +74,9 @@ REDIS_PORT: 6379
 # OTP/MFA 配置
 # OTP_VALID_WINDOW: 0
 # OTP_ISSUER_NAME: Jumpserver
+
+
+ENVIROMENT: TEST/PROD
+ALY_ACCESS_KEY: ''
+ALY_ACCESS_SECRET: ''
+ALY_REGION_LIST: ['cn-hangzhou', 'cn-beijing', 'us-west-1', 'cn-hongkong', 'eu-central-1']

@@ -7,7 +7,6 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('assets', '0028_asset_type'),
         ('alicloud', '0003_auto_20190627_1453'),
     ]
 

@@ -64,7 +64,18 @@ class NodeChildrenAsTreeApi(generics.ListAPIView):
         return tree_node
 
     def assets_amount(self, node):
-        cache_key = '_ECS_NODE_ASSETS_AMOUNT_{}'.format(node.key)
+        asset_type = self.request.query_params.get('type')
+        cache_key = ''
+        if asset_type == 'ecs':
+            cache_key = '_ECS_NODE_ASSETS_AMOUNT_{}'.format(node.key)
+        if asset_type == 'slb':
+            cache_key = '_SLB_NODE_ASSETS_AMOUNT_{}'.format(node.key)
+        if asset_type == 'oss':
+            cache_key = '_OSS_NODE_ASSETS_AMOUNT_{}'.format(node.key)
+        if asset_type == 'rds':
+            cache_key = '_RDS_NODE_ASSETS_AMOUNT_{}'.format(node.key)
+        if asset_type == 'kvstore':
+            cache_key = '_KVSTORE_NODE_ASSETS_AMOUNT_{}'.format(node.key)
         cached = cache.get(cache_key)
         if cached is not None:
             return cached
@@ -84,6 +95,14 @@ class NodeChildrenAsTreeApi(generics.ListAPIView):
             kwargs['nodes__key__regex'] = pattern
         if asset_type == 'ecs':
             assets = Ecs.objects.filter(*args, **kwargs).distinct()
+        if asset_type == 'slb':
+            assets = Slb.objects.filter(*args, **kwargs).distinct()
+        if asset_type == 'kvstore':
+            assets = KvStore.objects.filter(*args, **kwargs).distinct()
+        if asset_type == 'rds':
+            assets = Rds.objects.filter(*args, **kwargs).distinct()
+        if asset_type == 'oss':
+            assets = Oss.objects.filter(*args, **kwargs).distinct()
         return assets
 
     def filter_assets(self, queryset):
@@ -96,9 +115,26 @@ class NodeChildrenAsTreeApi(generics.ListAPIView):
         if self.node.is_default_node():
             if asset_type == 'ecs':
                 assets = Ecs.objects.filter(Q(nodes__id=self.id) | Q(nodes__isnull=True))
+            if asset_type == 'rds':
+                assets = Rds.objects.filter(Q(nodes__id=self.id) | Q(nodes__isnull=True))
+            if asset_type == 'kvstore':
+                assets = KvStore.objects.filter(Q(nodes__id=self.id) | Q(nodes__isnull=True))
+            if asset_type == 'slb':
+                assets = Slb.objects.filter(Q(nodes__id=self.id) | Q(nodes__isnull=True))
+            if asset_type == 'oss':
+                assets = Oss.objects.filter(Q(nodes__id=self.id) | Q(nodes__isnull=True))
         else:
-            if asset_type == 'ecs':
-                assets = Ecs.objects.filter(nodes__id=self.id)
+            if asset_type == 'slb':
+                assets = Slb.objects.filter(nodes__id=self.id)
+            if asset_type == 'rds':
+                assets = Rds.objects.filter(nodes__id=self.id)
+            if asset_type == 'kvstore':
+                assets = KvStore.objects.filter(nodes__id=self.id)
+            if asset_type == 'slb':
+                assets = Slb.objects.filter(nodes__id=self.id)
+            if asset_type == 'oss':
+                assets = Oss.objects.filter(nodes__id=self.id)
+
         assets = assets.distinct()
         for asset in assets:
             queryset.append(asset.as_tree_node(self.node))
@@ -144,6 +180,102 @@ class NodeRemoveEcsApi(generics.UpdateAPIView):
 
 class NodeReplaceEcsApi(generics.UpdateAPIView):
     serializer_class = NodeEcsSerializer
+    queryset = Node.objects.all()
+    permission_classes = (IsOrgAdmin,)
+    instance = None
+
+    def perform_update(self, serializer):
+        assets = serializer.validated_data.get('assets')
+        instance = self.get_object()
+        for asset in assets:
+            asset.nodes.set([instance])
+
+
+class NodeAddSlbApi(generics.UpdateAPIView):
+    serializer_class = NodeSlbSerializer
+    queryset = Node.objects.all()
+    permission_classes = (IsOrgAdmin,)
+
+    def perform_update(self, serializer):
+        assets = serializer.validated_data.get('assets')
+        instance = self.get_object()
+        ret = instance.slb.add(*tuple(assets))
+
+
+class NodeReplaceSlbApi(generics.UpdateAPIView):
+    serializer_class = NodeSlbSerializer
+    queryset = Node.objects.all()
+    permission_classes = (IsOrgAdmin,)
+    instance = None
+
+    def perform_update(self, serializer):
+        assets = serializer.validated_data.get('assets')
+        instance = self.get_object()
+        for asset in assets:
+            asset.nodes.set([instance])
+
+
+class NodeAddRdsApi(generics.UpdateAPIView):
+    serializer_class = NodeRdsSerializer
+    queryset = Node.objects.all()
+    permission_classes = (IsOrgAdmin,)
+
+    def perform_update(self, serializer):
+        assets = serializer.validated_data.get('assets')
+        instance = self.get_object()
+        ret = instance.rds.add(*tuple(assets))
+
+
+class NodeReplaceRdsApi(generics.UpdateAPIView):
+    serializer_class = NodeRdsSerializer
+    queryset = Node.objects.all()
+    permission_classes = (IsOrgAdmin,)
+    instance = None
+
+    def perform_update(self, serializer):
+        assets = serializer.validated_data.get('assets')
+        instance = self.get_object()
+        for asset in assets:
+            asset.nodes.set([instance])
+
+
+class NodeAddOssApi(generics.UpdateAPIView):
+    serializer_class = NodeOssSerializer
+    queryset = Node.objects.all()
+    permission_classes = (IsOrgAdmin,)
+
+    def perform_update(self, serializer):
+        assets = serializer.validated_data.get('assets')
+        instance = self.get_object()
+        ret = instance.oss.add(*tuple(assets))
+
+
+class NodeReplaceOssApi(generics.UpdateAPIView):
+    serializer_class = NodeOssSerializer
+    queryset = Node.objects.all()
+    permission_classes = (IsOrgAdmin,)
+    instance = None
+
+    def perform_update(self, serializer):
+        assets = serializer.validated_data.get('assets')
+        instance = self.get_object()
+        for asset in assets:
+            asset.nodes.set([instance])
+
+
+class NodeAddKvStoreApi(generics.UpdateAPIView):
+    serializer_class = NodeKvStoreSerializer
+    queryset = Node.objects.all()
+    permission_classes = (IsOrgAdmin,)
+
+    def perform_update(self, serializer):
+        assets = serializer.validated_data.get('assets')
+        instance = self.get_object()
+        ret = instance.kvstore.add(*tuple(assets))
+
+
+class NodeReplaceKvStoreApi(generics.UpdateAPIView):
+    serializer_class = NodeKvStoreSerializer
     queryset = Node.objects.all()
     permission_classes = (IsOrgAdmin,)
     instance = None
