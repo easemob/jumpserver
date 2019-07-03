@@ -11,24 +11,24 @@ from common.permissions import IsOrgAdmin, IsOrgAdminOrAppUser
 from rest_framework.response import Response
 
 from common.utils import get_object_or_none
-from ..tasks import sync_ecs_list_info_manual
+from ..tasks import sync_oss_list_info_manual
 from ..models import *
 
 
-class AliCloudEcsSyncUpdate(APIView):
+class AliCloudOssSyncUpdate(APIView):
     permission_classes = (IsOrgAdmin,)
 
     def post(self, request, *args, **kwargs):
-        task = sync_ecs_list_info_manual.delay()
+        task = sync_oss_list_info_manual.delay()
         return Response({"task": task.id})
 
 
-class AliCloudEcsViewSet(ReadOnlyModelViewSet):
-    filter_fields = ("instance_name", "instance_id", "inner_ip", "public_ip", "region")
+class AliCloudOssViewSet(ReadOnlyModelViewSet):
+    filter_fields = ("instance_name", "instance_id", "region")
     search_fields = filter_fields
-    ordering_fields = ("instance_name", "inner_ip", "cpu", "memory", 'expired_time')
-    queryset = Ecs.objects.all()
-    serializer_class = serializers.EcsSerializer
+    ordering_fields = ("instance_name", "region" 'create_time')
+    queryset = Oss.objects.all()
+    serializer_class = serializers.OssSerializer
     pagination_class = LimitOffsetPagination
     permission_classes = (IsOrgAdminOrAppUser,)
 

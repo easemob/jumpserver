@@ -16,18 +16,17 @@ def default_node():
         return None
 
 
-class Slb(OrgModelMixin):
+
+class Oss(OrgModelMixin):
     id = models.UUIDField(default=uuid.uuid4, primary_key=True)
     instance_id = models.CharField(max_length=128, verbose_name=_('InstanceId'))
-    address = models.CharField(max_length=128, null=True, blank=True, verbose_name=_('PublicIp'))
-    network_type = models.CharField(max_length=128, verbose_name=_('NetworkType'))
+    extranet_endpoint = models.CharField(max_length=128, null=True, blank=True, verbose_name=_('ConnectionDomain'))
+    intranet_endpoint = models.CharField(max_length=128, verbose_name=_('NetworkType'))
     instance_name = models.CharField(max_length=128, verbose_name=_('InstanceName'))
     region = models.CharField(max_length=128, verbose_name=_('RegionId'))
     status = models.CharField(max_length=128, verbose_name=_('Status'))
     create_time = models.DateTimeField(verbose_name=_('CreateTime'))
-    address_type = models.CharField(max_length=128, verbose_name=_('AddressType'))
-    address_ip_version = models.CharField(max_length=128, verbose_name=_('AddressIPVersion'))
-    nodes = models.ManyToManyField('assets.Node', default=default_node, related_name='slb', verbose_name=_("Nodes"))
+    nodes = models.ManyToManyField('assets.Node', default=default_node, related_name='oss', verbose_name=_("Nodes"))
 
     @property
     def instance_info(self):

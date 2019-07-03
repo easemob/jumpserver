@@ -16,18 +16,22 @@ def default_node():
         return None
 
 
-class Slb(OrgModelMixin):
+class Rds(OrgModelMixin):
     id = models.UUIDField(default=uuid.uuid4, primary_key=True)
     instance_id = models.CharField(max_length=128, verbose_name=_('InstanceId'))
-    address = models.CharField(max_length=128, null=True, blank=True, verbose_name=_('PublicIp'))
     network_type = models.CharField(max_length=128, verbose_name=_('NetworkType'))
     instance_name = models.CharField(max_length=128, verbose_name=_('InstanceName'))
     region = models.CharField(max_length=128, verbose_name=_('RegionId'))
     status = models.CharField(max_length=128, verbose_name=_('Status'))
-    create_time = models.DateTimeField(verbose_name=_('CreateTime'))
-    address_type = models.CharField(max_length=128, verbose_name=_('AddressType'))
-    address_ip_version = models.CharField(max_length=128, verbose_name=_('AddressIPVersion'))
-    nodes = models.ManyToManyField('assets.Node', default=default_node, related_name='slb', verbose_name=_("Nodes"))
+    expired_time = models.DateTimeField(verbose_name=_('ExpiredTime'), null=True)
+    engine_version = models.CharField(max_length=128, verbose_name=_('EngineVersion'))
+    connection_string = models.CharField(max_length=128, verbose_name=_('ConnectionString'))
+    connections = models.IntegerField(verbose_name=_('MaxConnections'))
+    memory = models.IntegerField(verbose_name=_('DBInstanceMemory'))
+    cpu = models.IntegerField(verbose_name=_('DBInstanceCPU'), default=0)
+    iops = models.IntegerField(verbose_name=_('MaxIOPS'))
+    storage = models.IntegerField(verbose_name=_('DBInstanceStorage'))
+    nodes = models.ManyToManyField('assets.Node', default=default_node, related_name='rds', verbose_name=_("Nodes"))
 
     @property
     def instance_info(self):

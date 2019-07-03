@@ -16,18 +16,22 @@ def default_node():
         return None
 
 
-class Slb(OrgModelMixin):
+class KvStore(OrgModelMixin):
     id = models.UUIDField(default=uuid.uuid4, primary_key=True)
     instance_id = models.CharField(max_length=128, verbose_name=_('InstanceId'))
-    address = models.CharField(max_length=128, null=True, blank=True, verbose_name=_('PublicIp'))
+    connection_domain = models.CharField(max_length=128, null=True, blank=True, verbose_name=_('ConnectionDomain'))
     network_type = models.CharField(max_length=128, verbose_name=_('NetworkType'))
     instance_name = models.CharField(max_length=128, verbose_name=_('InstanceName'))
     region = models.CharField(max_length=128, verbose_name=_('RegionId'))
     status = models.CharField(max_length=128, verbose_name=_('Status'))
-    create_time = models.DateTimeField(verbose_name=_('CreateTime'))
-    address_type = models.CharField(max_length=128, verbose_name=_('AddressType'))
-    address_ip_version = models.CharField(max_length=128, verbose_name=_('AddressIPVersion'))
-    nodes = models.ManyToManyField('assets.Node', default=default_node, related_name='slb', verbose_name=_("Nodes"))
+    expired_time = models.DateTimeField(verbose_name=_('ExpiredTime'))
+    engine_version = models.CharField(max_length=128, verbose_name=_('EngineVersion'))
+    instance_class = models.CharField(max_length=128, verbose_name=_('InstanceClass'))
+    capacity = models.IntegerField(verbose_name=_('Capacity'))
+    qps = models.IntegerField(verbose_name=_('QPS'))
+    bandwidth = models.IntegerField(verbose_name=_('Bandwidth'))
+    connections = models.IntegerField(verbose_name=_('Connections'))
+    nodes = models.ManyToManyField('assets.Node', default=default_node, related_name='kvstore', verbose_name=_("Nodes"))
 
     @property
     def instance_info(self):
@@ -58,7 +62,7 @@ class Slb(OrgModelMixin):
         data = {
             'id': str(self.id),
             'name': self.instance_name,
-            'title': self.address,
+            'title': self.connection_domain,
             'pId': parent_node.key,
             'isParent': False,
             'open': False,
@@ -68,7 +72,7 @@ class Slb(OrgModelMixin):
                 'asset': {
                     'id': self.id,
                     'hostname': self.instance_name,
-                    'ip': self.address,
+                    'ip': self.connection_domain,
                 }
             }
         }

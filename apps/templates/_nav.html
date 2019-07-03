@@ -33,7 +33,13 @@
         <i class="fa fa-cloud" style="width: 14px"></i> <span class="nav-label">{% trans 'AliCloud' %}</span><span class="fa arrow"></span>
     </a>
     <ul class="nav nav-second-level">
-        <li id="alicloud-ecs"><a href="{% url 'alicloud:alicloud-ecs-list' %}">{% trans 'Asset list' %}</a></li>
+        <li id="alicloud-ecs"><a href="{% url 'alicloud:alicloud-ecs-list' %}">{% trans 'Ecs' %}</a></li>
+        <li id="alicloud-slb"><a href="{% url 'alicloud:alicloud-slb-list' %}">{% trans 'Slb' %}</a></li>
+        <li id="alicloud-kvstore"><a href="{% url 'alicloud:alicloud-kvstore-list' %}">{% trans 'KvStore' %}</a></li>
+        <li id="alicloud-rds"><a href="{% url 'alicloud:alicloud-rds-list' %}">{% trans 'Rds' %}</a></li>
+        <li id="alicloud-oss"><a href="{% url 'alicloud:alicloud-oss-list' %}">{% trans 'Oss' %}</a></li>
+
+
     </ul>
 </li>
 

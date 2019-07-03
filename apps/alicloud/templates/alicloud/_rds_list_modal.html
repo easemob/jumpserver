@@ -1,4 +1,4 @@
-{% extends '_modal.html' %}
+_slb_list_modal.html{% extends '_modal.html' %}
 {% load i18n %}
 {% load static %}
 
@@ -63,7 +63,7 @@ function initTable2() {
 
     var options = {
         ele: $('#asset_list_modal_table'),
-        ajax_url: '{% url "api-alicloud:ecs-list" %}?show_current_asset=1',
+        ajax_url: '{% url "api-alicloud:rds-list" %}?show_current_asset=1',
         columns: [
             {data: "id"}, {data: "instance_name" }, {data: "instance_id" }
         ],
@@ -82,7 +82,7 @@ function onNodeSelected2(event, treeNode) {
 
 
 function initTree2() {
-    var url = '{% url 'api-alicloud:node-children-tree' %}?assets=0&type=ecs';
+    var url = '{% url 'api-alicloud:node-children-tree' %}?assets=0&type=rds';
     var setting = {
         view: {
             dblClickExpand: false,
