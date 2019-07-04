@@ -2,6 +2,8 @@
 import json
 from celery import shared_task
 from django.db import transaction
+
+from ops.celery.decorator import register_as_period_task
 from .models import *
 from assets.models import Node, Asset
 from .utils import AliCloudUtil
@@ -12,6 +14,7 @@ logger = get_logger(__file__)
 
 
 @shared_task
+@register_as_period_task(interval=3600*24)
 def sync_ecs_list_info_manual():
     logger.info('ready to sync aly cloud ecs list')
     ali_util = AliCloudUtil()
@@ -42,54 +45,55 @@ def sync_ecs_list_info_manual():
             except Exception as e:
                 failed.append('%s: %s' % (info['instance_name'], str(e)))
 
-        asset = get_object_or_none(Asset, number=info.get('instance_id'))
-        if not asset:
-            try:
-                with transaction.atomic():
-                    hostname = info.get('instance_name')
-                    domain = None
-                    admin_user = None
-                    if settings.ENVIROMENT == 'PROD':
-                        if 'ebs' in hostname:
-                            domain = 'ebs'
-                            admin_user = 'ebs-console'
-                        elif 'vip6' in hostname:
-                            domain = 'vip6'
-                            admin_user = 'vip6-console'
-                        elif 'hsb' in hostname:
-                            domain = 'hsb'
-                            admin_user = 'hsb-console'
-                        elif 'vip5' in hostname:
-                            domain = 'vip5'
-                            admin_user = 'vip6-console'
-                        elif 'usa' in hostname:
-                            domain = 'osu'
-                            admin_user = 'usa-console'
-                        else:
-                            domain = None
-                            admin_user = None
-                    attr = {
-                        'number': 'instance_id',
-                        'ip': info.get('inner_ip'),
-                        'port': 3299,
-                        'hostname': hostname,
-                        'platform': 'Linux',
-                        'domain': domain,
-                        'admin_user': admin_user
-                    }
-                    asset = Asset.objects.create(**attr)
-                    # need to add auto join node
-                    asset.nodes.set([node])
-                    j_created.append(info['instance_name'])
-            except Exception as e:
-                j_failed.append('%s: %s' % (info['instance_name'], str(e)))
-        else:
-            setattr(ecs, 'hostname', info.get('hostname'))
-            try:
-                asset.save()
-                j_updated.append(info['instance_name'])
-            except Exception as e:
-                j_failed.append('%s: %s' % (info['instance_name'], str(e)))
+        if settings.AUTO_UPDATE_JUMPSERVER_ASSETS:
+            asset = get_object_or_none(Asset, number=info.get('instance_id'))
+            if not asset:
+                try:
+                    with transaction.atomic():
+                        hostname = info.get('instance_name')
+                        domain = None
+                        admin_user = None
+                        if settings.ENVIROMENT == 'PROD':
+                            if 'ebs' in hostname:
+                                domain = 'ebs'
+                                admin_user = 'ebs-console'
+                            elif 'vip6' in hostname:
+                                domain = 'vip6'
+                                admin_user = 'vip6-console'
+                            elif 'hsb' in hostname:
+                                domain = 'hsb'
+                                admin_user = 'hsb-console'
+                            elif 'vip5' in hostname:
+                                domain = 'vip5'
+                                admin_user = 'vip6-console'
+                            elif 'usa' in hostname:
+                                domain = 'osu'
+                                admin_user = 'usa-console'
+                            else:
+                                domain = None
+                                admin_user = None
+                        attr = {
+                            'number': 'instance_id',
+                            'ip': info.get('inner_ip'),
+                            'port': 3299,
+                            'hostname': hostname,
+                            'platform': 'Linux',
+                            'domain': domain,
+                            'admin_user': admin_user
+                        }
+                        asset = Asset.objects.create(**attr)
+                        # need to add auto join node
+                        asset.nodes.set([node])
+                        j_created.append(info['instance_name'])
+                except Exception as e:
+                    j_failed.append('%s: %s' % (info['instance_name'], str(e)))
+            else:
+                setattr(ecs, 'hostname', info.get('hostname'))
+                try:
+                    asset.save()
+                    j_updated.append(info['instance_name'])
+                except Exception as e:
+                    j_failed.append('%s: %s' % (info['instance_name'], str(e)))
     data = {
         'created': created,
         'created_info': 'Created {}'.format(len(created)),
@@ -121,6 +125,7 @@ def sync_ecs_list_info_manual():
 
 
 @shared_task
+@register_as_period_task(interval=3600*24)
 def sync_slb_list_info_manual():
     logger.info('ready to sync aly cloud slb list')
     ali_util = AliCloudUtil()
@@ -167,6 +172,7 @@ def sync_slb_list_info_manual():
 
 
 @shared_task
+@register_as_period_task(interval=3600*24)
 def sync_rds_list_info_manual():
     logger.info('ready to sync aly cloud rds list')
     ali_util = AliCloudUtil()
@@ -213,6 +219,7 @@ def sync_rds_list_info_manual():
 
 
 @shared_task
+@register_as_period_task(interval=3600*24)
 def sync_kvstore_list_info_manual():
     logger.info('ready to sync aly cloud kvstore list')
     ali_util = AliCloudUtil()
@@ -259,6 +266,7 @@ def sync_kvstore_list_info_manual():
 
 
 @shared_task
+@register_as_period_task(interval=3600*24)
 def sync_oss_list_info_manual():
     logger.info('ready to sync aly cloud oss list')
     ali_util = AliCloudUtil()
