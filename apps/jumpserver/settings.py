@@ -84,7 +84,6 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 ]
 
-
 XPACK_DIR = os.path.join(BASE_DIR, 'xpack')
 XPACK_ENABLED = os.path.isdir(XPACK_DIR)
 XPACK_TEMPLATES_DIR = []
@@ -92,6 +91,7 @@ XPACK_CONTEXT_PROCESSOR = []
 
 if XPACK_ENABLED:
     from xpack.utils import get_xpack_templates_dir, get_xpack_context_processor
+
     INSTALLED_APPS.append('xpack.apps.XpackConfig')
     XPACK_TEMPLATES_DIR = get_xpack_templates_dir(BASE_DIR)
     XPACK_CONTEXT_PROCESSOR = get_xpack_context_processor()
@@ -180,7 +180,6 @@ if CONFIG.DB_ENGINE.lower() == 'mysql':
     if os.path.isfile(DB_CA_PATH):
         DB_OPTIONS['ssl'] = {'ca': DB_CA_PATH}
 
-
 # Password validation
 # https://docs.djangoproject.com/en/1.10/ref/settings/#auth-password-validators
 #
@@ -232,7 +231,7 @@ LOGGING = {
             'encoding': 'utf8',
             'level': 'DEBUG',
             'class': 'logging.handlers.RotatingFileHandler',
-            'maxBytes': 1024*1024*100,
+            'maxBytes': 1024 * 1024 * 100,
             'backupCount': 7,
             'formatter': 'main',
             'filename': JUMPSERVER_LOG_FILE,
@@ -242,7 +241,7 @@ LOGGING = {
             'level': 'DEBUG',
             'class': 'logging.handlers.RotatingFileHandler',
             'formatter': 'main',
-            'maxBytes': 1024*1024*100,
+            'maxBytes': 1024 * 1024 * 100,
             'backupCount': 7,
             'filename': ANSIBLE_LOG_FILE,
         },
@@ -251,7 +250,7 @@ LOGGING = {
             'level': 'DEBUG',
             'class': 'logging.handlers.RotatingFileHandler',
             'formatter': 'msg',
-            'maxBytes': 1024*1024*100,
+            'maxBytes': 1024 * 1024 * 100,
             'backupCount': 2,
             'filename': GUNICORN_LOG_FILE,
         },
@@ -358,7 +357,7 @@ EMAIL_USE_SSL = False
 EMAIL_USE_TLS = False
 EMAIL_SUBJECT_PREFIX = '[JMS] '
 
-#Email custom content
+# Email custom content
 EMAIL_CUSTOM_USER_CREATED_SUBJECT = ''
 EMAIL_CUSTOM_USER_CREATED_HONORIFIC = ''
 EMAIL_CUSTOM_USER_CREATED_BODY = ''
@@ -418,13 +417,12 @@ FILE_UPLOAD_DIRECTORY_PERMISSIONS = 0o755
 OTP_ISSUER_NAME = CONFIG.OTP_ISSUER_NAME
 OTP_VALID_WINDOW = CONFIG.OTP_VALID_WINDOW
 
-
 # ALY settings
 ALY_ACCESS_KEY = CONFIG.ALY_ACCESS_KEY
 ALY_ACCESS_SECRET = CONFIG.ALY_ACCESS_SECRET
 ALY_REGION_LIST = CONFIG.ALY_REGION_LIST
 ENVIROMENT = CONFIG.ENVIROMENT
-
+AUTO_UPDATE_JUMPSERVER_ASSETS = CONFIG.AUTO_UPDATE_JUMPSERVER_ASSETS
 
 # Auth LDAP settings
 AUTH_LDAP = False
@@ -553,7 +551,6 @@ DEFAULT_TERMINAL_REPLAY_STORAGE = {
 TERMINAL_REPLAY_STORAGE = {
 }
 
-
 SECURITY_MFA_AUTH = False
 SECURITY_LOGIN_LIMIT_COUNT = 7
 SECURITY_LOGIN_LIMIT_TIME = 30  # Unit: minute
@@ -597,7 +594,6 @@ TOKEN_EXPIRATION = CONFIG.TOKEN_EXPIRATION
 DISPLAY_PER_PAGE = CONFIG.DISPLAY_PER_PAGE
 DEFAULT_EXPIRED_YEARS = 70
 USER_GUIDE_URL = ""
-
 
 SWAGGER_SETTINGS = {
     'DEFAULT_AUTO_SCHEMA_CLASS': 'jumpserver.swagger.CustomSwaggerAutoSchema',
