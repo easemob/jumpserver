@@ -414,6 +414,12 @@ $(document).ready(function(){
         flash_message: false
     });
 })
+.on('click', '.btn-unallocated-asset', function () {
+          var url = asset_table.ajax.url();
+          url = setUrlParam(url, "unallocated", true);
+          asset_table.ajax.url(url);
+          asset_table.ajax.reload();
+})
 .on('click', '.btn-show-current-asset', function(){
     hideRMenu();
     $(this).css('display', 'none');
