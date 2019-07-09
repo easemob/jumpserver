@@ -14,7 +14,6 @@ router.register('slb', api.AliCloudSlbViewSet, 'slb')
 router.register('oss', api.AliCloudOssViewSet, 'oss')
 
 urlpatterns = [
-    # path('', api.AliCloudECSSyncUpdate.as_view(), name='ecs-sync'),
     path('ecs/sync', api.AliCloudEcsSyncUpdate.as_view(), name='ecs-sync'),
     path('slb/sync', api.AliCloudSlbSyncUpdate.as_view(), name='slb-sync'),
     path('rds/sync', api.AliCloudRdsSyncUpdate.as_view(), name='rds-sync'),
@@ -27,12 +26,16 @@ urlpatterns = [
     path('nodes/<uuid:pk>/ecs/remove/', api.NodeRemoveEcsApi.as_view(), name='node-remove-ecs'),
     path('nodes/<uuid:pk>/slb/add/', api.NodeAddSlbApi.as_view(), name='node-add-slb'),
     path('nodes/<uuid:pk>/slb/replace/', api.NodeReplaceSlbApi.as_view(), name='node-replace-slb'),
+    path('nodes/<uuid:pk>/slb/remove/', api.NodeRemoveSlbApi.as_view(), name='node-remove-slb'),
     path('nodes/<uuid:pk>/kvstore/add/', api.NodeAddKvStoreApi.as_view(), name='node-add-kvstore'),
     path('nodes/<uuid:pk>/kvstore/replace/', api.NodeReplaceKvStoreApi.as_view(), name='node-replace-kvstore'),
+    path('nodes/<uuid:pk>/kvstore/remove/', api.NodeRemoveKvStoreApi.as_view(), name='node-remove-kvstore'),
     path('nodes/<uuid:pk>/rds/add/', api.NodeAddRdsApi.as_view(), name='node-add-rds'),
     path('nodes/<uuid:pk>/rds/replace/', api.NodeReplaceRdsApi.as_view(), name='node-replace-rds'),
+    path('nodes/<uuid:pk>/rds/remove/', api.NodeRemoveRdsApi.as_view(), name='node-remove-rds'),
     path('nodes/<uuid:pk>/oss/add/', api.NodeAddOssApi.as_view(), name='node-add-oss'),
     path('nodes/<uuid:pk>/oss/replace/', api.NodeReplaceOssApi.as_view(), name='node-replace-oss'),
+    path('nodes/<uuid:pk>/oss/remove/', api.NodeRemoveOssApi.as_view(), name='node-remove-oss'),
 ]
 
 urlpatterns += router.urls

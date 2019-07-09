@@ -59,7 +59,10 @@
                </div>
            </div>
            <div class="mail-box-header">
-               <div class="uc pull-left m-r-5"><a class="btn btn-sm btn-primary btn-sync-asset"> {% trans "Sync asset" %} </a></div>
+               <div class="uc pull-left m-r-5">
+                   <a class="btn btn-sm btn-primary btn-sync-asset"> {% trans "Sync asset" %} </a>
+                   <a class="btn btn-sm btn-primary btn-unallocated-asset"> {% trans "Unallocated asset" %} </a>
+               </div>
                <div class="" style="float: right">
                    <div class=" btn-group">
                         <button data-toggle="dropdown" class="btn btn-default btn-sm dropdown-toggle">CSV <span class="caret"></span></button>
@@ -87,6 +90,19 @@
                    <tbody>
                    </tbody>
                </table>
+               <div id="actions" class="hide">
+                   <div class="input-group">
+                       <select class="form-control m-b" style="width: auto" id="slct_bulk_update">
+                           <option value="remove">{% trans 'Remove from this node' %}</option>
+                           <option value="replace">{% trans 'Move assets' %}</option>
+                       </select>
+                       <div class="input-group-btn pull-left" style="padding-left: 5px;">
+                           <button id='btn_bulk_update' style="height: 32px;"  class="btn btn-sm btn-primary">
+                            {% trans 'Submit' %}
+                           </button>
+                       </div>
+                   </div>
+               </div>
            </div>
        </div>
    </div>
@@ -226,6 +242,7 @@ function onSelected(event, treeNode) {
     zTree.expandNode(current_node, true);
     var url = asset_table.ajax.url();
     url = setUrlParam(url, "node_id", current_node_id);
+    url = setUrlParam(url, "unallocated", '');
     url = setUrlParam(url, "show_current_asset", getCookie('show_current_asset'));
     setCookie('node_selected', treeNode.node_id);
     asset_table.ajax.url(url);
@@ -400,6 +417,12 @@ $(document).ready(function(){
         flash_message: false
     });
 })
+.on('click', '.btn-unallocated-asset', function() {
+    var url = asset_table.ajax.url();
+    url = setUrlParam(url, "unallocated", true);
+    asset_table.ajax.url(url);
+    asset_table.ajax.reload();
+})
 .on('click', '.btn-show-current-asset', function(){
     hideRMenu();
     $(this).css('display', 'none');
@@ -423,9 +446,65 @@ $(document).ready(function(){
     });
     window.location.reload();
 })
+.on('click', '#btn_bulk_update', function () {
+    var action = $('#slct_bulk_update').val();
+    var id_list = asset_table.selected;
+    console.log('selected', id_list)
+    if (id_list.length === 0) {
+        toastr.error("请选择资产!");
+        return false;
+    }
+    var the_url = "{% url 'api-assets:asset-list' %}";
+    var data = {
+        'resources': id_list
+    };
+    function refreshTag() {
+        $('#asset_list_table').DataTable().ajax.reload();
+    }
+
+    function doReplace() {
+        update_node_action = 'replace';
+        $('#asset_list_modal').modal('show');
+    }
+
+    function doRemove() {
+        var nodes = zTree.getSelectedNodes();
+        if (!current_node_id) {
+           return
+        }
+
+        var data = {
+           'assets': id_list
+        };
+
+        var success = function () {
+           asset_table.ajax.reload()
+        };
+
+        var url = "{% url 'api-alicloud:node-remove-rds' pk=DEFAULT_PK %}".replace("{{ DEFAULT_PK }}", current_node_id);
+        APIUpdateAttr({
+           'url': url,
+           'method': 'PUT',
+           'body': JSON.stringify(data),
+           'success': success
+        })
+    }
+
+    switch(action) {
+        case 'remove':
+            doRemove();
+            break;
+        case 'replace':
+            doReplace();
+            break;
+        default:
+            break;
+    }
+    $(".ipt_check_all").prop("checked", false)
+})
 .on('click', '#btn_asset_modal_confirm', function () {
     var assets_selected = asset_table2.selected;
-    if (!current_node_id) {
+    if (!current_node_id && !current_node_id2) {
         return
     }
 
@@ -438,6 +517,11 @@ $(document).ready(function(){
     var url = '';
     if (update_node_action === "move") {
         url = "{% url 'api-alicloud:node-replace-rds' pk=DEFAULT_PK %}".replace("{{ DEFAULT_PK }}", current_node_id);
+    } else if (update_node_action === 'replace') {
+        data = {
+           'assets': asset_table.selected
+        };
+        url = "{% url 'api-alicloud:node-replace-rds' pk=DEFAULT_PK %}".replace("{{ DEFAULT_PK }}", current_node_id2);
     } else {
         url = "{% url 'api-alicloud:node-add-rds' pk=DEFAULT_PK %}".replace("{{ DEFAULT_PK }}", current_node_id);
     }
