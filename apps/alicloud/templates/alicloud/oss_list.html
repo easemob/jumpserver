@@ -401,7 +401,7 @@
           var props = {
             method: "POST",
             body: JSON.stringify(data),
-            success_url: "{% url 'api-assets:asset-list' %}",
+            success_url: "{% url 'api-alicloud:oss-list' %}",
             format: 'csv',
             params: {
               search: search,

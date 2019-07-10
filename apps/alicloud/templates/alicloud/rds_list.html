@@ -393,7 +393,7 @@ $(document).ready(function(){
     var props = {
         method: "POST",
         body: JSON.stringify(data),
-        success_url: "{% url 'api-assets:asset-list' %}",
+        success_url: "{% url 'api-alicloud:rds-list' %}",
         format: 'csv',
         params: {
             search: search,
