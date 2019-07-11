@@ -67,6 +67,7 @@ function initTable2() {
         columns: [
             {data: "id"}, {data: "hostname" }, {data: "ip" }
         ],
+        lengthMenu: [[10, 25, 50], [10, 25, 50]],
         pageLength: 10
     };
     asset_table2 = jumpserver.initServerSideDataTable(options);
@@ -76,6 +77,7 @@ function initTable2() {
 function onNodeSelected2(event, treeNode) {
     var url = asset_table2.ajax.url();
     url = setUrlParam(url, "node_id", treeNode.meta.node.id);
+    url = setUrlParam(url, "show_current_asset", "");
     asset_table2.ajax.url(url);
     asset_table2.ajax.reload();
 }

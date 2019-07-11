@@ -1,9 +1,10 @@
 # ~*~ coding: utf-8 ~*~
 #
 
+from orgs.utils import set_to_root_org
 
 __all__ = [
-    'AssetsFilterMixin', 'RemoteAppFilterMixin',
+    'AssetsFilterMixin', 'RemoteAppFilterMixin', 'ChangeOrgIfNeedMixin',
 ]
 
 
@@ -14,6 +15,7 @@ class AssetsFilterMixin(object):
 
     def filter_queryset(self, queryset):
         queryset = self.search_assets(queryset)
+        queryset = self.filter_labels(queryset)
         queryset = self.sort_assets(queryset)
         return queryset
 
@@ -39,6 +41,31 @@ class AssetsFilterMixin(object):
 
         queryset = sort_assets(queryset, order_by=order_by, reverse=reverse)
         return queryset
+
+    def filter_labels(self, queryset):
+        from assets.models import Label
+        query_keys = self.request.query_params.keys()
+        all_label_keys = Label.objects.values_list('name', flat=True)
+        valid_keys = set(all_label_keys) & set(query_keys)
+        labels_query = {}
+        for key in valid_keys:
+            labels_query[key] = self.request.query_params.get(key)
+        if not labels_query:
+            return queryset
+
+        labels = set()
+        for k, v in labels_query.items():
+            label = Label.objects.filter(name=k, value=v).first()
+            if not label:
+                continue
+            labels.add(label)
+
+        _queryset = []
+        for asset in queryset:
+            _labels = set(asset.labels.all()) & set(labels)
+            if _labels and len(_labels) == len(set(labels)):
+                _queryset.append(asset)
+        return _queryset
 
 
 class RemoteAppFilterMixin(object):
@@ -74,3 +101,17 @@ class RemoteAppFilterMixin(object):
             queryset, key=lambda x: getattr(x, order_by), reverse=reverse
         )
         return queryset
+
+
+class ChangeOrgIfNeedMixin(object):
+
+    @staticmethod
+    def change_org_if_need(request, kwargs):
+        if request.user.is_authenticated and request.user.is_superuser \
+                or request.user.is_app \
+                or kwargs.get('pk') is None:
+            set_to_root_org()
+
+    def get(self, request, *args, **kwargs):
+        self.change_org_if_need(request, kwargs)
+        return super().get(request, *args, **kwargs)

@@ -30,6 +30,7 @@ class MailTestingAPI(APIView):
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
         if serializer.is_valid():
+            email_from = serializer.validated_data["EMAIL_FROM"]
             email_host_user = serializer.validated_data["EMAIL_HOST_USER"]
             for k, v in serializer.validated_data.items():
                 if k.startswith('EMAIL'):
@@ -37,7 +38,8 @@ class MailTestingAPI(APIView):
             try:
                 subject = "Test"
                 message = "Test smtp setting"
-                send_mail(subject, message,  email_host_user, [email_host_user])
+                email_from = email_from or email_host_user
+                send_mail(subject, message,  email_from, [email_from])
             except Exception as e:
                 return Response({"error": str(e)}, status=401)
 
@@ -240,22 +242,3 @@ class CommandStorageDeleteAPI(APIView):
         storage_name = str(request.data.get('name'))
         Setting.delete_storage('TERMINAL_COMMAND_STORAGE', storage_name)
         return Response({"msg": _('Delete succeed')}, status=200)
-
-
-class DjangoSettingsAPI(APIView):
-    def get(self, request):
-        if not settings.DEBUG:
-            return Response("Not in debug mode")
-
-        data = {}
-        for i in [settings, getattr(settings, '_wrapped')]:
-            if not i:
-                continue
-            for k, v in i.__dict__.items():
-                if k and k.isupper():
-                    try:
-                        json.dumps(v)
-                        data[k] = v
-                    except (json.JSONDecodeError, TypeError):
-                        data[k] = str(v)
-        return Response(data)
