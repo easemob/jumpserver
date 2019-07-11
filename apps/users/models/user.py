@@ -17,6 +17,7 @@ from django.utils import timezone
 from django.shortcuts import reverse
 
 from common.utils import get_signer, date_expired_default, get_logger
+from common import fields
 
 
 __all__ = ['User']
@@ -30,11 +31,13 @@ class User(AbstractUser):
     ROLE_ADMIN = 'Admin'
     ROLE_USER = 'User'
     ROLE_APP = 'App'
+    ROLE_AUDITOR = 'Auditor'
 
     ROLE_CHOICES = (
         (ROLE_ADMIN, _('Administrator')),
         (ROLE_USER, _('User')),
-        (ROLE_APP, _('Application'))
+        (ROLE_APP, _('Application')),
+        (ROLE_AUDITOR, _("Auditor"))
     )
     OTP_LEVEL_CHOICES = (
         (0, _('Disable')),
@@ -82,16 +85,16 @@ class User(AbstractUser):
     otp_level = models.SmallIntegerField(
         default=0, choices=OTP_LEVEL_CHOICES, verbose_name=_('MFA')
     )
-    _otp_secret_key = models.CharField(max_length=128, blank=True, null=True)
+    otp_secret_key = fields.EncryptCharField(max_length=128, blank=True, null=True)
     # Todo: Auto generate key, let user download
-    _private_key = models.CharField(
-        max_length=5000, blank=True, verbose_name=_('Private key')
+    private_key = fields.EncryptTextField(
+        blank=True, null=True, verbose_name=_('Private key')
     )
-    _public_key = models.CharField(
-        max_length=5000, blank=True, verbose_name=_('Public key')
+    public_key = fields.EncryptTextField(
+        blank=True, null=True, verbose_name=_('Public key')
     )
     comment = models.TextField(
-        max_length=200, blank=True, verbose_name=_('Comment')
+        blank=True, null=True, verbose_name=_('Comment')
     )
     is_first_login = models.BooleanField(default=True)
     date_expired = models.DateTimeField(
@@ -139,14 +142,6 @@ class User(AbstractUser):
     def can_update_password(self):
         return self.is_local
 
-    @property
-    def otp_secret_key(self):
-        return signer.unsign(self._otp_secret_key)
-
-    @otp_secret_key.setter
-    def otp_secret_key(self, item):
-        self._otp_secret_key = signer.sign(item)
-
     def check_otp(self, code):
         from ..utils import check_otp_code
         return check_otp_code(self.otp_secret_key, code)
@@ -159,13 +154,13 @@ class User(AbstractUser):
             Check if the user's ssh public key is valid.
             This function is used in base.html.
         """
-        if self._public_key:
+        if self.public_key:
             return True
         return False
 
     @property
     def groups_display(self):
-        return ' '.join(self.groups.all().values_list('name', flat=True))
+        return ' '.join([group.name for group in self.groups.all()])
 
     @property
     def role_display(self):
@@ -187,22 +182,6 @@ class User(AbstractUser):
         if self.is_active and not self.is_expired:
             return True
         return False
-
-    @property
-    def private_key(self):
-        return signer.unsign(self._private_key)
-
-    @private_key.setter
-    def private_key(self, private_key_raw):
-        self._private_key = signer.sign(private_key_raw)
-
-    @property
-    def public_key(self):
-        return signer.unsign(self._public_key)
-
-    @public_key.setter
-    def public_key(self, public_key_raw):
-        self._public_key = signer.sign(public_key_raw)
 
     @property
     def public_key_obj(self):
@@ -242,6 +221,20 @@ class User(AbstractUser):
             return True
         else:
             return False
+
+    @property
+    def is_auditor(self):
+        return self.role == 'Auditor'
+
+    @property
+    def is_common_user(self):
+        if self.is_org_admin:
+            return False
+        if self.is_auditor:
+            return False
+        if self.is_app:
+            return False
+        return True
 
     @property
     def is_app(self):
@@ -293,7 +286,6 @@ class User(AbstractUser):
             self.role = 'Admin'
             self.is_active = True
         super().save(*args, **kwargs)
-        self.expire_user_cache()
 
     @property
     def private_token(self):
@@ -358,7 +350,7 @@ class User(AbstractUser):
 
     def generate_reset_token(self):
         letter = string.ascii_letters + string.digits
-        token =''.join([random.choice(letter) for _ in range(50)])
+        token = ''.join([random.choice(letter) for _ in range(50)])
         self.set_cache(token)
         return token
 
@@ -442,25 +434,7 @@ class User(AbstractUser):
     def delete(self, using=None, keep_parents=False):
         if self.pk == 1 or self.username == 'admin':
             return
-        self.expire_user_cache()
         return super(User, self).delete()
-
-    def expire_user_cache(self):
-        key = self.user_cache_key_prefix.format(self.id)
-        cache.delete(key)
-
-    @classmethod
-    def get_user_or_from_cache(cls, uid):
-        key = cls.user_cache_key_prefix.format(uid)
-        user = cache.get(key)
-        if user:
-            return user
-        try:
-            user = cls.objects.get(id=uid)
-            cache.set(key, user, 3600)
-        except cls.DoesNotExist:
-            user = None
-        return user
 
     class Meta:
         ordering = ['username']

@@ -8,16 +8,14 @@ from rest_framework.generics import (
 
 from common.permissions import IsOrgAdmin, IsOrgAdminOrAppUser
 from common.tree import TreeNodeSerializer
-from orgs.utils import set_to_root_org
 from ..utils import (
     AssetPermissionUtil, parse_asset_to_tree_node, parse_node_to_tree_node,
     RemoteAppPermissionUtil,
 )
 from ..hands import (
-    AssetGrantedSerializer, UserGroup,  Node, NodeSerializer,
-    RemoteAppSerializer,
+    UserGroup,  Node, NodeSerializer, RemoteAppSerializer,
 )
-from .. import serializers
+from .. import serializers, const
 
 
 __all__ = [
@@ -30,7 +28,7 @@ __all__ = [
 
 class UserGroupGrantedAssetsApi(ListAPIView):
     permission_classes = (IsOrgAdmin,)
-    serializer_class = AssetGrantedSerializer
+    serializer_class = serializers.AssetGrantedSerializer
 
     def get_queryset(self):
         user_group_id = self.kwargs.get('pk', '')
@@ -93,19 +91,12 @@ class UserGroupGrantedNodesWithAssetsAsTreeApi(ListAPIView):
     show_assets = True
     system_user_id = None
 
-    def change_org_if_need(self):
-        if self.request.user.is_superuser or \
-                self.request.user.is_app or \
-                self.kwargs.get('pk') is None:
-            set_to_root_org()
-
     def get(self, request, *args, **kwargs):
         self.show_assets = request.query_params.get('show_assets', '1') == '1'
         self.system_user_id = request.query_params.get('system_user')
         return super().get(request, *args, **kwargs)
 
     def get_queryset(self):
-        self.change_org_if_need()
         user_group_id = self.kwargs.get('pk', '')
         queryset = []
         group = get_object_or_404(UserGroup, id=user_group_id)
@@ -127,15 +118,18 @@ class UserGroupGrantedNodesWithAssetsAsTreeApi(ListAPIView):
 
 class UserGroupGrantedNodeAssetsApi(ListAPIView):
     permission_classes = (IsOrgAdminOrAppUser,)
-    serializer_class = AssetGrantedSerializer
+    serializer_class = serializers.AssetGrantedSerializer
 
     def get_queryset(self):
         user_group_id = self.kwargs.get('pk', '')
         node_id = self.kwargs.get('node_id')
 
         user_group = get_object_or_404(UserGroup, id=user_group_id)
-        node = get_object_or_404(Node, id=node_id)
         util = AssetPermissionUtil(user_group)
+        if str(node_id) == const.UNGROUPED_NODE_ID:
+            node = util.tree.ungrouped_node
+        else:
+            node = get_object_or_404(Node, id=node_id)
         nodes = util.get_nodes_with_assets()
         assets = nodes.get(node, [])
         for asset, system_users in assets.items():

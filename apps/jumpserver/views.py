@@ -1,5 +1,6 @@
 import datetime
 import re
+import time
 
 from django.http import HttpResponse, HttpResponseRedirect
 from django.conf import settings
@@ -8,8 +9,8 @@ from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 from django.db.models import Count
 from django.shortcuts import redirect
-from django.contrib.auth.mixins import LoginRequiredMixin
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse
 from django.utils.encoding import iri_to_uri
@@ -18,10 +19,12 @@ from users.models import User
 from assets.models import Asset
 from terminal.models import Session
 from orgs.utils import current_org
+from common.permissions import PermissionsMixin, IsValidUser
 
 
-class IndexView(LoginRequiredMixin, TemplateView):
+class IndexView(PermissionsMixin, TemplateView):
     template_name = 'index.html'
+    permission_classes = [IsValidUser]
 
     session_week = None
     session_month = None
@@ -31,6 +34,8 @@ class IndexView(LoginRequiredMixin, TemplateView):
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
             return self.handle_no_permission()
+        if request.user.is_auditor:
+            return super(IndexView, self).dispatch(request, *args, **kwargs)
         if not request.user.is_org_admin:
             return redirect('assets:user-asset-list')
         if not current_org or not current_org.can_admin_by(request.user):
@@ -219,3 +224,10 @@ def redirect_format_api(request, *args, **kwargs):
         return HttpResponseTemporaryRedirect(_path)
     else:
         return Response({"msg": "Redirect url failed: {}".format(_path)}, status=404)
+
+
+class HealthCheckView(APIView):
+    permission_classes = ()
+
+    def get(self, request):
+        return Response({"status": 1, "time": int(time.time())})

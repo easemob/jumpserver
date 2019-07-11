@@ -1,109 +1,132 @@
 # -*- coding: utf-8 -*-
 #
 from rest_framework import serializers
-
+from django.db.models import Prefetch
 from django.utils.translation import ugettext_lazy as _
 
-from orgs.mixins import OrgResourceSerializerMixin
-from common.mixins import BulkSerializerMixin
+from orgs.mixins import BulkOrgResourceModelSerializer
 from common.serializers import AdaptedBulkListSerializer
-from ..models import Asset
-from .system_user import AssetSystemUserSerializer
+from ..models import Asset, Node, Label
+from .base import ConnectivitySerializer
 
 __all__ = [
-    'AssetSerializer', 'AssetGrantedSerializer', 'MyAssetGrantedSerializer',
-    'AssetAsNodeSerializer', 'AssetSimpleSerializer',
+    'AssetSerializer', 'AssetSimpleSerializer',
+    'ProtocolsField',
 ]
 
 
-class AssetSerializer(BulkSerializerMixin, serializers.ModelSerializer, OrgResourceSerializerMixin):
+class ProtocolField(serializers.RegexField):
+    protocols = '|'.join(dict(Asset.PROTOCOL_CHOICES).keys())
+    default_error_messages = {
+        'invalid': _('Protocol format should {}/{}'.format(protocols, '1-65535'))
+    }
+    regex = r'^(%s)/(\d{1,5})$' % protocols
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(self.regex, **kwargs)
+
+
+def validate_duplicate_protocols(values):
+    errors = []
+    names = []
+
+    for value in values:
+        if not value or '/' not in value:
+            continue
+        name = value.split('/')[0]
+        if name in names:
+            errors.append(_("Protocol duplicate: {}").format(name))
+        names.append(name)
+        errors.append('')
+    if any(errors):
+        raise serializers.ValidationError(errors)
+
+
+class ProtocolsField(serializers.ListField):
+    default_validators = [validate_duplicate_protocols]
+
+    def __init__(self, *args, **kwargs):
+        kwargs['child'] = ProtocolField()
+        kwargs['allow_null'] = True
+        kwargs['allow_empty'] = True
+        kwargs['min_length'] = 1
+        kwargs['max_length'] = 4
+        super().__init__(*args, **kwargs)
+
+    def to_representation(self, value):
+        if not value:
+            return []
+        return value.split(' ')
+
+
+class AssetSerializer(BulkOrgResourceModelSerializer):
+    protocols = ProtocolsField(label=_('Protocols'), required=False)
+    connectivity = ConnectivitySerializer(read_only=True, label=_("Connectivity"))
+
     """
     资产的数据结构
     """
     class Meta:
         model = Asset
         list_serializer_class = AdaptedBulkListSerializer
-        # validators = [] # 解决批量导入时unique_together字段校验失败
         fields = [
-            'id', 'org_id', 'org_name', 'ip', 'hostname', 'protocol', 'port',
-            'platform', 'is_active', 'public_ip', 'domain', 'admin_user',
-            'nodes', 'labels', 'number', 'vendor', 'model', 'sn',
+            'id', 'ip', 'hostname', 'protocol', 'port',
+            'protocols', 'platform', 'is_active', 'public_ip', 'domain',
+            'admin_user', 'nodes', 'labels', 'number', 'vendor', 'model', 'sn',
             'cpu_model', 'cpu_count', 'cpu_cores', 'cpu_vcpus', 'memory',
             'disk_total', 'disk_info', 'os', 'os_version', 'os_arch',
             'hostname_raw', 'comment', 'created_by', 'date_created',
-            'hardware_info', 'connectivity'
+            'hardware_info', 'connectivity',
         ]
         read_only_fields = (
-            'number', 'vendor', 'model', 'sn', 'cpu_model', 'cpu_count',
+            'vendor', 'model', 'sn', 'cpu_model', 'cpu_count',
             'cpu_cores', 'cpu_vcpus', 'memory', 'disk_total', 'disk_info',
             'os', 'os_version', 'os_arch', 'hostname_raw',
             'created_by', 'date_created',
         )
         extra_kwargs = {
+            'protocol': {'write_only': True},
+            'port': {'write_only': True},
             'hardware_info': {'label': _('Hardware info')},
-            'connectivity': {'label': _('Connectivity')},
             'org_name': {'label': _('Org name')}
-
         }
 
     @classmethod
     def setup_eager_loading(cls, queryset):
         """ Perform necessary eager loading of data. """
-        queryset = queryset.prefetch_related('labels', 'nodes')\
-            .select_related('admin_user')
+        queryset = queryset.prefetch_related(
+            Prefetch('nodes', queryset=Node.objects.all().only('id')),
+            Prefetch('labels', queryset=Label.objects.all().only('id')),
+        ).select_related('admin_user', 'domain')
         return queryset
 
-    def get_field_names(self, declared_fields, info):
-        fields = super().get_field_names(declared_fields, info)
-        fields.extend([
-            'hardware_info', 'connectivity', 'org_name'
-        ])
-        return fields
+    def compatible_with_old_protocol(self, validated_data):
+        protocols_data = validated_data.pop("protocols", [])
 
+        # 兼容老的api
+        name = validated_data.get("protocol")
+        port = validated_data.get("port")
+        if not protocols_data and name and port:
+            protocols_data.insert(0, '/'.join([name, str(port)]))
+        elif not name and not port and protocols_data:
+            protocol = protocols_data[0].split('/')
+            validated_data["protocol"] = protocol[0]
+            validated_data["port"] = int(protocol[1])
+        if validated_data:
+            validated_data["protocols"] = ' '.join(protocols_data)
 
-class AssetAsNodeSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Asset
-        fields = ['id', 'hostname', 'ip', 'port', 'platform', 'protocol']
+    def create(self, validated_data):
+        self.compatible_with_old_protocol(validated_data)
+        instance = super().create(validated_data)
+        return instance
 
-
-class AssetGrantedSerializer(serializers.ModelSerializer):
-    """
-    被授权资产的数据结构
-    """
-    system_users_granted = AssetSystemUserSerializer(many=True, read_only=True)
-    system_users_join = serializers.SerializerMethodField()
-    # nodes = NodeTMPSerializer(many=True, read_only=True)
-
-    class Meta:
-        model = Asset
-        fields = (
-            "id", "hostname", "ip", "port", "system_users_granted",
-            "is_active", "system_users_join", "os", 'domain',
-            "platform", "comment", "protocol", "org_id", "org_name",
-        )
-
-    @staticmethod
-    def get_system_users_join(obj):
-        system_users = [s.username for s in obj.system_users_granted]
-        return ', '.join(system_users)
-
-
-class MyAssetGrantedSerializer(AssetGrantedSerializer):
-    """
-    普通用户获取授权的资产定义的数据结构
-    """
-
-    class Meta:
-        model = Asset
-        fields = (
-            "id", "hostname", "system_users_granted",
-            "is_active", "system_users_join", "org_name",
-            "os", "platform", "comment", "org_id", "protocol"
-        )
+    def update(self, instance, validated_data):
+        self.compatible_with_old_protocol(validated_data)
+        return super().update(instance, validated_data)
 
 
 class AssetSimpleSerializer(serializers.ModelSerializer):
+
     class Meta:
         model = Asset
-        fields = ['id', 'hostname', 'port', 'ip', 'connectivity']
+        fields = ['id', 'hostname', 'ip', 'connectivity', 'port']

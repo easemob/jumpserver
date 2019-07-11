@@ -1,6 +1,7 @@
 # coding: utf-8
 import os
 import subprocess
+import datetime
 
 from django.conf import settings
 from celery import shared_task, subtask
@@ -46,7 +47,7 @@ def run_command_execution(cid, **kwargs):
         try:
             execution.run()
         except SoftTimeLimitExceeded:
-            print("HLLL")
+            logger.error("Run time out")
     else:
         logger.error("Not found the execution id: {}".format(cid))
 
@@ -102,6 +103,13 @@ def hello(name, callback=None):
     import time
     time.sleep(10)
     print("Hello {}".format(name))
+
+
+@shared_task
+# @after_app_shutdown_clean_periodic
+# @register_as_period_task(interval=30)
+def hello123():
+    print("{} Hello world".format(datetime.datetime.now().strftime("%H:%M:%S")))
 
 
 @shared_task

@@ -165,11 +165,13 @@ function formSubmit(props) {
     /*
     {
       "form": $("form"),
+      "data": {},
       "url": "",
       "method": "POST",
       "redirect_to": "",
       "success": function(data, textStatue, jqXHR){},
-      "error": function(jqXHR, textStatus, errorThrown) {}
+      "error": function(jqXHR, textStatus, errorThrown) {},
+      "message": "",
     }
     */
     props = props || {};
@@ -183,6 +185,10 @@ function formSubmit(props) {
         dataType: props.data_type || "json"
     }).done(function (data, textState, jqXHR) {
         if (redirect_to) {
+            if (props.message) {
+                var messages="ed65330a45559c87345a0eb6ac7812d18d0d8976$[[\"__json_message\"\0540\05425\054\"asdfasdf \\u521b\\u5efa\\u6210\\u529f\"]]"
+                setCookie("messages", messages)
+            }
             location.href = redirect_to;
         } else if (typeof props.success === 'function') {
             return props.success(data, textState, jqXHR);
@@ -230,7 +236,15 @@ function formSubmit(props) {
                     var help_msg = v.join("<br/>") ;
                     helpBlockRef.html(help_msg);
                 } else {
-                    noneFieldErrorMsg += v + '<br/>';
+                    $.each(v, function (kk, vv) {
+                        if (typeof errors === "object") {
+                            $.each(vv, function (kkk, vvv) {
+                                noneFieldErrorMsg += " " + vvv + '<br/>';
+                            })
+                        } else{
+                            noneFieldErrorMsg += vv + '<br/>';
+                        }
+                    })
                 }
             });
             if (noneFieldErrorRef.length === 1 && noneFieldErrorMsg !== '') {
@@ -263,7 +277,7 @@ function APIUpdateAttr(props) {
     }).done(function(data, textStatue, jqXHR) {
         if (flash_message) {
             var msg = "";
-            if (user_fail_message) {
+            if (user_success_message) {
                 msg = user_success_message;
             } else {
                 msg = default_success_message;
@@ -453,14 +467,15 @@ jumpserver.initDataTable = function (options) {
   ];
   columnDefs = options.columnDefs ? options.columnDefs.concat(columnDefs) : columnDefs;
   var select = {
-            style: 'multi',
-            selector: 'td:first-child'
-      };
+      style: 'multi',
+      selector: 'td:first-child'
+  };
   var table = ele.DataTable({
         pageLength: options.pageLength || 15,
-        dom: options.dom || '<"#uc.pull-left">flt<"row m-t"<"col-md-8"<"#op.col-md-6"><"col-md-6 text-center"i>><"col-md-4"p>>',
+        dom: options.dom || '<"#uc.pull-left"><"pull-right"<"inline"l><"#fb.inline"><"inline"f><"#fa.inline">>tr<"row m-t"<"col-md-8"<"#op.col-md-6"><"col-md-6 text-center"i>><"col-md-4"p>>',
         order: options.order || [],
         // select: options.select || 'multi',
+        searchDelay: 800,
         buttons: [],
         columnDefs: columnDefs,
         ajax: {
@@ -486,8 +501,10 @@ jumpserver.initDataTable = function (options) {
         $('[data-toggle="popover"]').popover({
             html: true,
             placement: 'bottom',
-            // trigger: 'hover',
+            trigger: 'click',
             container: 'body'
+        }).on('click', function (e) {
+            $('[data-toggle="popover"]').not(this).popover('hide');
         });
     });
     $('.ipt_check_all').on('click', function() {
@@ -551,12 +568,14 @@ jumpserver.initServerSideDataTable = function (options) {
       };
   var table = ele.DataTable({
         pageLength: options.pageLength || 15,
-        dom: options.dom || '<"#uc.pull-left">fltr<"row m-t"<"col-md-8"<"#op.col-md-6"><"col-md-6 text-center"i>><"col-md-4"p>>',
+        // dom: options.dom || '<"#uc.pull-left">fltr<"row m-t"<"col-md-8"<"#op.col-md-6"><"col-md-6 text-center"i>><"col-md-4"p>>',
+        dom: options.dom || '<"#uc.pull-left"><"pull-right"<"inline"l><"#fb.inline"><"inline"f><"#fa.inline">>tr<"row m-t"<"col-md-8"<"#op.col-md-6"><"col-md-6 text-center"i>><"col-md-4"p>>',
         order: options.order || [],
         buttons: [],
         columnDefs: columnDefs,
         serverSide: true,
         processing: true,
+        searchDelay: 800,
         ajax: {
             url: options.ajax_url ,
             error: function(jqXHR, textStatus, errorThrown) {
@@ -589,7 +608,10 @@ jumpserver.initServerSideDataTable = function (options) {
                     search_list.map(function (val, index) {
                        var kv = val.split(":");
                        if (kv.length === 2) {
-                           search_attr[kv[0]] = kv[1]
+                           var value = kv[1];
+                           value = value.replace("+", " ");
+                           console.log(value);
+                           search_attr[kv[0]] = value
                        } else {
                            search_raw.push(kv)
                        }
@@ -619,7 +641,7 @@ jumpserver.initServerSideDataTable = function (options) {
         columns: options.columns || [],
         select: options.select || select,
         language: jumpserver.language,
-        lengthMenu: [[15, 25, 50, 9999], [15, 25, 50, 'All']]
+        lengthMenu: options.lengthMenu || [[15, 25, 50, 9999], [15, 25, 50, 'All']]
     });
     table.selected = [];
     table.selected_rows = [];
@@ -632,6 +654,8 @@ jumpserver.initServerSideDataTable = function (options) {
             $.each(rows, function (id, row) {
                 table.selected_rows.push(row);
                 if (row.id && $.inArray(row.id, table.selected) === -1){
+                    console.log(table)
+                    console.log(table.selected);
                     table.selected.push(row.id)
                 }
             })
@@ -652,8 +676,14 @@ jumpserver.initServerSideDataTable = function (options) {
             })
         }
     }).on('draw', function(){
-        $('#op').html(options.op_html || '');
-        $('#uc').html(options.uc_html || '');
+        $('[data-toggle="popover"]').popover({
+            html: true,
+            placement: 'bottom',
+            trigger: 'click',
+            container: 'body'
+        }).on('click', function (e) {
+            $('[data-toggle="popover"]').not(this).popover('hide');
+        });
         var table_data = [];
         $.each(table.rows().data(), function (id, row) {
             if (row.id) {
@@ -667,6 +697,11 @@ jumpserver.initServerSideDataTable = function (options) {
                 table.rows(index).select()
             }
         });
+    }).on("init", function () {
+        $('#op').html(options.op_html || '');
+        $('#uc').html(options.uc_html || '');
+        $('#fb').html(options.fb_html || '');
+        $('#fa').html(options.fa_html || '');
     });
     var table_id = table.settings()[0].sTableId;
     $('#' + table_id + ' .ipt_check_all').on('click', function() {
@@ -913,8 +948,11 @@ function initPopover($container, $progress, $idPassword, $el, password_check_rul
 }
 
 // 解决input框中的资产和弹出表格中资产的显示不一致
-function initSelectedAssets2Table(){
-    var inputAssets = $('#id_assets').val();
+function initSelectedAssets2Table(id){
+    if (!id) {
+        id = "#id_assets"
+    }
+    var inputAssets = $(id).val();
     var selectedAssets = asset_table2.selected.concat();
 
     // input assets无，table assets选中，则取消勾选(再次click)
@@ -996,7 +1034,7 @@ function APIImportData(props){
                 $('#updated_failed').html('');
                 $('#updated_failed_detail').html('');
                 $('#success_updated').html(gettext("Update Success"));
-                $('#success_updated_detail').html("Count" + ": " + data.length);
+                $('#success_updated_detail').html(gettext("Count") + ": " + data.length);
             }
 
             props.data_table.ajax.reload()
@@ -1042,4 +1080,80 @@ function htmlEscape ( d ) {
     return typeof d === 'string' ?
         d.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;') :
         d;
+}
+
+function objectAttrsIsList(obj, attrs) {
+    attrs.forEach(function (attr) {
+        if (!obj[attr]){
+            obj[attr] = []
+        }
+        else if (obj[attr] && !(obj[attr] instanceof Array)){
+            obj[attr] = [obj[attr]]
+        }
+    })
+}
+
+function objectAttrsIsDatetime(obj, attrs) {
+    attrs.forEach(function (attr) {
+        obj[attr] = new Date(obj[attr]).toISOString();
+    })
+}
+
+function objectAttrsIsBool(obj, attrs) {
+    attrs.forEach(function (attr) {
+        if (!obj[attr]) {
+            obj[attr] = false
+        } else if (['on', '1'].includes(obj[attr])) {
+            obj[attr] = true
+        }
+    })
+}
+
+function formatDateAsCN(d) {
+    var date = new Date(d);
+    return date.toISOString().replace("T", " ").replace(/\..*/, "");
+}
+
+function getUrlParams(url) {
+    url = url.split("?");
+    var params = "";
+    if (url.length === 2){
+        params = url[1];
+    }
+    return params
+}
+
+function getTimeUnits(u) {
+    var units = {
+        "d": "天",
+        "h": "时",
+        "m": "分",
+        "s": "秒",
+    };
+    if (navigator.language || "zh-CN") {
+        return units[u]
+    }
+    return u
+}
+
+function timeOffset(a, b) {
+    var start = new Date(a);
+    var end = new Date(b);
+    var offset = (end - start)/1000;
+
+    var days = offset / 3600 / 24;
+    var hours = offset / 3600;
+    var minutes = offset / 60;
+    var seconds = offset;
+
+    if (days > 1) {
+        return days.toFixed(1) + " " + getTimeUnits("d");
+    } else if (hours > 1) {
+        return hours.toFixed(1) + " " + getTimeUnits("h");
+    } else if (minutes > 1) {
+        return minutes.toFixed(1) + " " + getTimeUnits("m")
+    } else if (seconds > 1) {
+        return seconds.toFixed(1) + " " + getTimeUnits("s")
+    }
+    return ""
 }
