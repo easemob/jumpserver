@@ -171,7 +171,6 @@
         // 视图初始化
         function DataViewShow() {
             let s = getCookie('billing_money_view');
-            console.log(s, 'sssss');
             if (s === null) {
                 setCookie('billing_money_view', 'table');
                 s = 'table';
@@ -315,7 +314,7 @@
                 },
                 series : [
                     {
-                        name: '访问来源',
+                        name: '花费金额',
                         type: 'pie',
                         radius : '65%',
                         center: ['50%', '60%'],
@@ -330,6 +329,7 @@
                     }
                 ]
             };
+            $('#money_type_pie').removeAttr('_echarts_instance_');
             let p1 = echarts.init(document.getElementById('money_type_pie'));
             p1.setOption(option);
         }
@@ -439,8 +439,8 @@
             $('#btn-charts').addClass('btn-warning');
             $('#table-views').hide();
             $('#chart-views').show();
+            chartDataHandel(); // 图像更新
             setCookie('billing_money_view', 'chart');
-
         })
         .on('click', '#btn-table', function () {
             $('#btn-charts').removeClass('btn-warning');
