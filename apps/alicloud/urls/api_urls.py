@@ -33,6 +33,9 @@ urlpatterns = [
     path('nodes/<uuid:pk>/rds/replace/', api.NodeReplaceRdsApi.as_view(), name='node-replace-rds'),
     path('nodes/<uuid:pk>/oss/add/', api.NodeAddOssApi.as_view(), name='node-add-oss'),
     path('nodes/<uuid:pk>/oss/replace/', api.NodeReplaceOssApi.as_view(), name='node-replace-oss'),
+    path('nodes/tree/all/', api.BillingQueryNode.as_view(), name='billing-node-all-query'),
+    path('billing/sync/', api.BillingQuerySyncTask.as_view(), name='billing-sync'),
+    path('billing/node/query/', api.BillingQuery.as_view(), name='billing-query'),
 ]
 
 urlpatterns += router.urls

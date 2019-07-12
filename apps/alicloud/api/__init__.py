@@ -5,3 +5,4 @@ from .kvstore import *
 from .slb import *
 from .rds import *
 from .oss import *
+from .billing import *

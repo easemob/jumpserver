@@ -4,3 +4,4 @@ from .kvstore import *
 from .oss import *
 from .slb import *
 from .rds import *
+from .billing import *
