@@ -18,6 +18,7 @@ def default_node():
 
 class Slb(OrgModelMixin):
     id = models.UUIDField(default=uuid.uuid4, primary_key=True)
+    type = models.CharField(default='slb', max_length=128, verbose_name=_('AssetType'))
     instance_id = models.CharField(max_length=128, verbose_name=_('InstanceId'))
     address = models.CharField(max_length=128, null=True, blank=True, verbose_name=_('PublicIp'))
     network_type = models.CharField(max_length=128, verbose_name=_('NetworkType'))
