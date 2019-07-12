@@ -12,5 +12,5 @@ urlpatterns = [
     path('kvstore/', views.KvStoreListView.as_view(), name='alicloud-kvstore-list'),
     path('rds/', views.RdsListView.as_view(), name='alicloud-rds-list'),
     path('oss/', views.OssListView.as_view(), name='alicloud-oss-list'),
-
+    path('billing/', views.BillingView.as_view(), name='alicloud-billing-query'),
 ]

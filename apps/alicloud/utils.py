@@ -1,16 +1,20 @@
 # -*- coding: utf-8 -*-
 
 import json
+import time
+from datetime import datetime, timedelta
 
 import oss2
-import time
 from aliyunsdkcore.client import AcsClient
 from aliyunsdkecs.request.v20140526 import DescribeInstancesRequest
 from aliyunsdkrds.request.v20140815 import DescribeDBInstancesRequest, DescribeDBInstanceAttributeRequest
 from aliyunsdkslb.request.v20140515 import DescribeLoadBalancersRequest
 from aliyunsdkr_kvstore.request.v20150101 import DescribeInstancesRequest as kvInstancesRequest
 from aliyunsdkr_kvstore.request.v20150101 import DescribeInstanceAttributeRequest
+from aliyunsdkbssopenapi.request.v20171214.QueryOrdersRequest import QueryOrdersRequest
+from aliyunsdkbssopenapi.request.v20171214.GetOrderDetailRequest import GetOrderDetailRequest
 from django.conf import settings
+
 from common.utils import get_logger
 
 
@@ -97,7 +101,6 @@ class AliCloudUtil(object):
             })
         return insert_result
 
-
     def get_kvstore_instances(self, pageSize=50):
         result = []
         request = kvInstancesRequest.DescribeInstancesRequest()
@@ -133,7 +136,6 @@ class AliCloudUtil(object):
                 })
 
         return result
-
 
     def get_rds_instances(self, pageSize=100):
         result = []
@@ -177,7 +179,6 @@ class AliCloudUtil(object):
                 })
         return result
 
-
     def get_oss_instances(self):
         result = []
         auth = oss2.Auth(self.AccessKeyId, self.AccessKeySecret)
@@ -195,3 +196,49 @@ class AliCloudUtil(object):
                 'create_time': dt
             })
         return result
+
+    def get_order_result(self, request):
+        client = AcsClient(self.AccessKeyId, self.AccessKeySecret, 'cn-hangzhou')
+        response = client.do_action_with_exception(request)
+        return json.loads(str(response, encoding='utf-8'))
+
+    def get_orders_list(self, begin_time=None, end_time=None, page_size=100):
+        """
+        查询指定时间内的所有订单
+        :param begin_time: 开始时间 标准ISO时间 (例: 2016-05-23T12:00:00Z) 默认为昨天一天的账单数据
+        :param end_time: 结束时间 同上
+        :param page_size: 每页大小
+        :return:
+        """
+        if not begin_time:
+            today = datetime.now()
+            yesterday = today - timedelta(days=1)
+            begin_time = yesterday.strftime("%Y-%m-%dT00:00:00Z")
+            end_time = today.strftime("%Y-%m-%dT00:00:00Z")
+        request = QueryOrdersRequest()
+        request.set_PageSize(page_size)
+        request.set_accept_format('json')
+        request.set_CreateTimeEnd(end_time)
+        request.set_CreateTimeStart(begin_time)
+        page_num = 0
+        while True:
+            page_num += 1
+            request.set_PageNum(page_num)
+            data = self.get_order_result(request)
+            if len(data['Data']['OrderList']['Order']) != 0:
+                yield data
+            else:
+                break
+
+    def get_orders_details(self, order_id):
+        """
+        查询订单详情
+        :param order_id: 订单id
+        :return:
+        """
+        request = GetOrderDetailRequest()
+        request.set_accept_format('json')
+        request.set_OrderId(order_id)
+        return self.get_order_result(request)
+
+

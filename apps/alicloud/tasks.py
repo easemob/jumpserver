@@ -370,3 +370,91 @@ def auto_allocate_asset_node(name, asset_type):
     else:
         logger.info('auto allocate {} to root node'.format(name))
         return Node.root()
+
+
+@shared_task
+@register_as_period_task(interval=3600*24)
+def sync_billing_info_manual(begin_time=None, end_time=None):
+    logger.info('ready to sync aly cloud billing list')
+    logger.info(f'同步订单区间为: {begin_time}______{end_time}')
+
+    ali_util = AliCloudUtil()
+
+    orders_num = 0  # 订单条数
+    orders_details_num = 0  # 订单详情条数
+    sync_success_orders = []
+    sync_error_orders = {}
+    sync_skip_orders = {}
+
+    for orders in ali_util.get_orders_list(begin_time, end_time):
+        logger.info(json.dumps(orders))
+        orders_info = orders["Data"]["OrderList"]["Order"]
+        for i in orders_info:
+            order_summary = i
+            order_id = order_summary['OrderId']
+            if order_summary["PaymentStatus"] != "Paid":
+                info = f"error {order_id}, 订单状态未支付, 跳过"
+                logger.info(info)
+                sync_skip_orders[order_id] = info
+
+            elif order_summary["PretaxGrossAmount"] == 0.0:
+                info = f"error {order_id}, 交易金额为0, 跳过"
+                logger.info(info)
+                sync_skip_orders[order_id] = info
+
+            elif order_summary.get("PretaxGrossAmount") is None:
+                info = f"error {order_id}, 错误订单, 没有类型"
+                logger.info(info)
+                sync_skip_orders[order_id] = info
+
+            else:
+                try:
+                    details = ali_util.get_orders_details(order_id)
+                    infos = details["Data"]["OrderList"]["Order"]
+                    table_row_num = 0
+                    for d in infos:
+                        instance_ids = json.loads(d['InstanceIDs'])
+                        for f in instance_ids:
+                            f_payment_amount = d['PretaxAmount'] % len(instance_ids)
+                            f_payment_gross_amount = d['PretaxAmount'] % len(instance_ids)
+                            row_data = {
+                                'product_code': d['ProductCode'],
+                                'order_id': d['OrderId'],
+                                'order_id_index': table_row_num,
+                                'payment_status': d['PaymentStatus'],
+                                'payment_time': d['PaymentTime'],
+                                'order_type': d['OrderType'],
+                                'create_time': d['CreateTime'],
+                                'payment_gross_amount': f_payment_gross_amount,
+                                'payment_amount': f_payment_amount,
+                                'instance_ids': f,
+                            }
+                            sd = Billing.objects.filter(order_id=d['OrderId'], order_id_index=table_row_num).count()
+                            if sd > 0:
+                                logger.info(f"重复录入 {d['OrderId']}")
+                                break
+
+                            Billing.objects.create(**row_data)
+                            table_row_num += 1
+                        orders_details_num += 1
+                    orders_num += 1
+                    sync_success_orders.append(order_id)
+                    logger.info(f"ok {order_id}")
+                except Exception as e:
+                    err = f"error {order_id} => {e}"
+                    sync_error_orders['order_id'] = err
+                    logger.error(err)
+
+    data = {
+        'orders_numbers': orders_num,
+        'sync_error_orders': sync_error_orders,
+        'sync_skip_orders': sync_skip_orders,
+        'sync_success_orders': sync_success_orders
+    }
+    logger.info(data)
+    logger.info('sync finish')
+    if len(sync_error_orders) != 0:
+        return False, data
+    return True, data
+
+
