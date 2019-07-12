@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from django.db.models import Q
+from django.db.models import Q, Count
 from rest_framework.generics import get_object_or_404
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.views import APIView
@@ -24,9 +24,9 @@ class AliCloudEcsSyncUpdate(APIView):
 
 
 class AliCloudEcsViewSet(ReadOnlyModelViewSet):
-    filter_fields = ("instance_name", "instance_id", "inner_ip", "public_ip", "region")
+    filter_fields = ("instance_name", "instance_id", "inner_ip", "public_ip", 'status', "region")
     search_fields = filter_fields
-    ordering_fields = ("instance_name", "inner_ip", "cpu", "memory", 'expired_time')
+    ordering_fields = ("instance_name", "inner_ip", "cpu", "memory", 'status', 'expired_time')
     queryset = Ecs.objects.all()
     serializer_class = serializers.EcsSerializer
     pagination_class = LimitOffsetPagination
@@ -42,10 +42,14 @@ class AliCloudEcsViewSet(ReadOnlyModelViewSet):
         node.assets.add(*assets)
 
     def filter_node(self, queryset):
+        unallocated = self.request.query_params.get("unallocated")
+        if unallocated:
+            queryset = queryset.annotate(num_nodes=Count('nodes'))
+            queryset = queryset.filter((Q(num_nodes=0)) | (Q(nodes=Node.root()) & Q(num_nodes=1)))
+            return queryset
         node_id = self.request.query_params.get("node_id")
         if not node_id:
             return queryset
-
         node = get_object_or_404(Node, id=node_id)
         show_current_asset = self.request.query_params.get("show_current_asset") in ('1', 'true')
 
@@ -71,6 +75,3 @@ class AliCloudEcsViewSet(ReadOnlyModelViewSet):
     def get_queryset(self):
         queryset = super().get_queryset().distinct()
         return queryset
-
-
-

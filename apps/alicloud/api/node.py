@@ -124,8 +124,8 @@ class NodeChildrenAsTreeApi(generics.ListAPIView):
             if asset_type == 'oss':
                 assets = Oss.objects.filter(Q(nodes__id=self.id) | Q(nodes__isnull=True))
         else:
-            if asset_type == 'slb':
-                assets = Slb.objects.filter(nodes__id=self.id)
+            if asset_type == 'ecs':
+                assets = Ecs.objects.filter(nodes__id=self.id)
             if asset_type == 'rds':
                 assets = Rds.objects.filter(nodes__id=self.id)
             if asset_type == 'kvstore':
@@ -215,6 +215,22 @@ class NodeReplaceSlbApi(generics.UpdateAPIView):
             asset.nodes.set([instance])
 
 
+class NodeRemoveSlbApi(generics.UpdateAPIView):
+    serializer_class = NodeSlbSerializer
+    queryset = Node.objects.all()
+    permission_classes = (IsOrgAdmin,)
+    instance = None
+
+    def perform_update(self, serializer):
+        assets = serializer.validated_data.get('assets')
+        instance = self.get_object()
+        if instance != Node.root():
+            instance.slb.remove(*tuple(assets))
+        else:
+            assets = [asset for asset in assets if asset.nodes.count() > 1]
+            instance.slb.remove(*tuple(assets))
+
+
 class NodeAddRdsApi(generics.UpdateAPIView):
     serializer_class = NodeRdsSerializer
     queryset = Node.objects.all()
@@ -237,6 +253,22 @@ class NodeReplaceRdsApi(generics.UpdateAPIView):
         instance = self.get_object()
         for asset in assets:
             asset.nodes.set([instance])
+
+
+class NodeRemoveRdsApi(generics.UpdateAPIView):
+    serializer_class = NodeRdsSerializer
+    queryset = Node.objects.all()
+    permission_classes = (IsOrgAdmin,)
+    instance = None
+
+    def perform_update(self, serializer):
+        assets = serializer.validated_data.get('assets')
+        instance = self.get_object()
+        if instance != Node.root():
+            instance.rds.remove(*tuple(assets))
+        else:
+            assets = [asset for asset in assets if asset.nodes.count() > 1]
+            instance.rds.remove(*tuple(assets))
 
 
 class NodeAddOssApi(generics.UpdateAPIView):
@@ -263,6 +295,22 @@ class NodeReplaceOssApi(generics.UpdateAPIView):
             asset.nodes.set([instance])
 
 
+class NodeRemoveOssApi(generics.UpdateAPIView):
+    serializer_class = NodeOssSerializer
+    queryset = Node.objects.all()
+    permission_classes = (IsOrgAdmin,)
+    instance = None
+
+    def perform_update(self, serializer):
+        assets = serializer.validated_data.get('assets')
+        instance = self.get_object()
+        if instance != Node.root():
+            instance.oss.remove(*tuple(assets))
+        else:
+            assets = [asset for asset in assets if asset.nodes.count() > 1]
+            instance.oss.remove(*tuple(assets))
+
+
 class NodeAddKvStoreApi(generics.UpdateAPIView):
     serializer_class = NodeKvStoreSerializer
     queryset = Node.objects.all()
@@ -285,3 +333,19 @@ class NodeReplaceKvStoreApi(generics.UpdateAPIView):
         instance = self.get_object()
         for asset in assets:
             asset.nodes.set([instance])
+
+
+class NodeRemoveKvStoreApi(generics.UpdateAPIView):
+    serializer_class = NodeKvStoreSerializer
+    queryset = Node.objects.all()
+    permission_classes = (IsOrgAdmin,)
+    instance = None
+
+    def perform_update(self, serializer):
+        assets = serializer.validated_data.get('assets')
+        instance = self.get_object()
+        if instance != Node.root():
+            instance.kvstore.remove(*tuple(assets))
+        else:
+            assets = [asset for asset in assets if asset.nodes.count() > 1]
+            instance.kvstore.remove(*tuple(assets))

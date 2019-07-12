@@ -284,6 +284,9 @@ msgstr "地域"
 msgid "ChargeType"
 msgstr "付费类型"
 
+msgid "Move assets"
+msgstr "移动资产"
+
 #: alicloud/templates/alicloud/ecs_list.html:98
 #: alicloud/templates/alicloud/kvstore_list.html:98
 #: alicloud/templates/alicloud/oss_list.html:102
@@ -353,6 +356,9 @@ msgstr "桶名称"
 #| msgid "Endpoint"
 msgid "EndPoint"
 msgstr "端点"
+
+msgid "Unallocated asset"
+msgstr "未分配资产"
 
 #: alicloud/views/ecs.py:15 alicloud/views/kvstore.py:15
 #: alicloud/views/oss.py:15 alicloud/views/rds.py:15 alicloud/views/slb.py:15

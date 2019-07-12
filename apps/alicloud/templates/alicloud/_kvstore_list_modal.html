@@ -15,9 +15,6 @@
     text-align: center;
 }
 
-#assetTree2.ztree * {
-    background-color: #f8fafb;
-}
 #assetTree2.ztree {
     background-color: #f8fafb;
 }
@@ -56,6 +53,7 @@
 
 <script>
 var zTree2, asset_table2 = 0;
+var current_node_id2 = null;
 function initTable2() {
     if(asset_table2){
         return
@@ -74,6 +72,7 @@ function initTable2() {
 }
 
 function onNodeSelected2(event, treeNode) {
+    current_node_id2 = treeNode.meta.node.id;
     var url = asset_table2.ajax.url();
     url = setUrlParam(url, "node_id", treeNode.meta.node.id);
     asset_table2.ajax.url(url);
