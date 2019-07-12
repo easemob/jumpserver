@@ -415,8 +415,8 @@ def sync_billing_info_manual(begin_time=None, end_time=None):
                     for d in infos:
                         instance_ids = json.loads(d['InstanceIDs'])
                         for f in instance_ids:
-                            f_payment_amount = d['PretaxAmount'] % len(instance_ids)
-                            f_payment_gross_amount = d['PretaxAmount'] % len(instance_ids)
+                            f_payment_amount = d['PretaxAmount'] / len(instance_ids)
+                            f_payment_gross_amount = d['PretaxAmount'] / len(instance_ids)
                             row_data = {
                                 'product_code': d['ProductCode'],
                                 'order_id': d['OrderId'],
