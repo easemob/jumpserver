@@ -9,36 +9,27 @@
         body {
             background-color: black;
         }
-        .xterm-rows {
-            {#padding: 15px;#}
-            font-family: "Bitstream Vera Sans Mono", Monaco, "Consolas", Courier, monospace;
-            font-size: 13px;
-        }
     </style>
 </head>
-<div id="term" style="height: 100%;width: 100%">
+<div id="term" style="position:fixed;height: 100%;width: 100%">
 </div>
 
 <script>
-    var rowHeight = 18;
-    var colWidth = 10;
-    var mark = '';
-    var url = "{% url 'api-ops:celery-task-log' pk=task_id %}";
-    var term;
-    var end = false;
-    var error = false;
-    var interval = 200;
-    var success = true;
+    let rowHeight = 18;
+    let colWidth = 10;
+    let fontSize = 12;
+    let mark = '';
+    let url = "{% url 'api-ops:celery-task-log' pk=task_id %}";
+    let term;
+    let end = false;
+    let error = false;
+    let interval = 200;
+    let success = true;
 
-    function calWinSize() {
-        var t = $('#marker');
-        {#rowHeight = 1.00 * t.height();#}
-        {#colWidth = 1.00 * t.width() / 6;#}
-    }
     function resize() {
-       {#var rows = Math.floor(window.innerHeight / rowHeight) - 1;#}
-       {#var cols = Math.floor(window.innerWidth / colWidth) - 2;#}
-       {#term.resize(cols, rows);#}
+       let rows = Math.floor(window.innerHeight / (fontSize + 2)) - fontSize;
+       let cols = Math.floor(window.innerWidth / fontSize * 1.78) - fontSize;
+       term.resize(cols, rows);
     }
     function requestAndWrite() {
         if (!end && success) {
@@ -69,19 +60,19 @@
             cursorBlink: false,
             screenKeys: false,
             fontFamily: '"Monaco", "Consolas", "monospace"',
-            fontSize: 12,
+            fontSize: fontSize,
             rightClickSelectsWord: true,
             disableStdin: true
         });
         term.open(document.getElementById('term'));
-        term.resize(90, 32);
+        // term.resize(290, 10);
         resize();
         term.on('data', function (data) {
             {#term.write(data.replace('\r', '\r\n'))#}
             term.write(data);
         });
         window.onresize = function () {
-            resize()
+            resize();
         };
         {#$('.terminal').detach().appendTo('#term');#}
         setInterval(function () {

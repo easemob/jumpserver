@@ -7,7 +7,7 @@ from django.conf.urls.static import static
 from django.conf.urls.i18n import i18n_patterns
 from django.views.i18n import JavaScriptCatalog
 
-from .views import IndexView, LunaView, I18NView
+from .views import IndexView, LunaView, I18NView, HealthCheckView
 from .swagger import get_swagger_view
 
 api_v1 = [
@@ -22,6 +22,7 @@ api_v1 = [
    path('authentication/v1/', include('authentication.urls.api_urls', namespace='api-auth')),
    path('common/v1/', include('common.urls.api_urls', namespace='api-common')),
    path('applications/v1/', include('applications.urls.api_urls', namespace='api-applications')),
+   path('alicloud/v1/', include('alicloud.urls.api_urls', namespace='api-alicloud')),
 ]
 
 api_v2 = [
@@ -40,12 +41,17 @@ app_view_patterns = [
     path('orgs/', include('orgs.urls.views_urls', namespace='orgs')),
     path('auth/', include('authentication.urls.view_urls'), name='auth'),
     path('applications/', include('applications.urls.views_urls', namespace='applications')),
+    path('alicloud/', include('alicloud.urls.views_urls', namespace='alicloud'))
 ]
 
 
 if settings.XPACK_ENABLED:
-    app_view_patterns.append(path('xpack/', include('xpack.urls.view_urls', namespace='xpack')))
-    api_v1.append(path('xpack/v1/', include('xpack.urls.api_urls', namespace='api-xpack')))
+    app_view_patterns.append(
+        path('xpack/', include('xpack.urls.view_urls', namespace='xpack'))
+    )
+    api_v1.append(
+        path('xpack/v1/', include('xpack.urls.api_urls', namespace='api-xpack'))
+    )
 
 js_i18n_patterns = i18n_patterns(
     path('jsi18n/', JavaScriptCatalog.as_view(), name='javascript-catalog'),
@@ -63,6 +69,7 @@ urlpatterns = [
     path('', IndexView.as_view(), name='index'),
     path('', include(api_v2_patterns)),
     path('', include(api_v1_patterns)),
+    path('api/health/', HealthCheckView.as_view(), name="health"),
     path('luna/', LunaView.as_view(), name='luna-view'),
     path('i18n/<str:lang>/', I18NView.as_view(), name='i18n-switch'),
     path('settings/', include('settings.urls.view_urls', namespace='settings')),
@@ -92,3 +99,4 @@ if settings.DEBUG:
         path('docs/v2/', get_swagger_view("v2").with_ui('swagger', cache_timeout=1), name="docs"),
         path('redoc/v2/', get_swagger_view("v2").with_ui('redoc', cache_timeout=1), name='redoc'),
     ]
+

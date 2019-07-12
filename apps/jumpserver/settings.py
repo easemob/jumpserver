@@ -68,6 +68,7 @@ INSTALLED_APPS = [
     'audits.apps.AuditsConfig',
     'authentication.apps.AuthenticationConfig',  # authentication
     'applications.apps.ApplicationsConfig',
+    'alicloud.apps.AlicloudConfig',
     'rest_framework',
     'rest_framework_swagger',
     'drf_yasg',
@@ -83,7 +84,6 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 ]
 
-
 XPACK_DIR = os.path.join(BASE_DIR, 'xpack')
 XPACK_ENABLED = os.path.isdir(XPACK_DIR)
 XPACK_TEMPLATES_DIR = []
@@ -91,6 +91,7 @@ XPACK_CONTEXT_PROCESSOR = []
 
 if XPACK_ENABLED:
     from xpack.utils import get_xpack_templates_dir, get_xpack_context_processor
+
     INSTALLED_APPS.append('xpack.apps.XpackConfig')
     XPACK_TEMPLATES_DIR = get_xpack_templates_dir(BASE_DIR)
     XPACK_CONTEXT_PROCESSOR = get_xpack_context_processor()
@@ -110,6 +111,7 @@ MIDDLEWARE = [
     'jumpserver.middleware.RequestMiddleware',
     'orgs.middleware.OrgMiddleware',
 ]
+
 
 ROOT_URLCONF = 'jumpserver.urls'
 
@@ -179,7 +181,6 @@ if CONFIG.DB_ENGINE.lower() == 'mysql':
     if os.path.isfile(DB_CA_PATH):
         DB_OPTIONS['ssl'] = {'ca': DB_CA_PATH}
 
-
 # Password validation
 # https://docs.djangoproject.com/en/1.10/ref/settings/#auth-password-validators
 #
@@ -231,7 +232,7 @@ LOGGING = {
             'encoding': 'utf8',
             'level': 'DEBUG',
             'class': 'logging.handlers.RotatingFileHandler',
-            'maxBytes': 1024*1024*100,
+            'maxBytes': 1024 * 1024 * 100,
             'backupCount': 7,
             'formatter': 'main',
             'filename': JUMPSERVER_LOG_FILE,
@@ -241,7 +242,7 @@ LOGGING = {
             'level': 'DEBUG',
             'class': 'logging.handlers.RotatingFileHandler',
             'formatter': 'main',
-            'maxBytes': 1024*1024*100,
+            'maxBytes': 1024 * 1024 * 100,
             'backupCount': 7,
             'filename': ANSIBLE_LOG_FILE,
         },
@@ -250,7 +251,7 @@ LOGGING = {
             'level': 'DEBUG',
             'class': 'logging.handlers.RotatingFileHandler',
             'formatter': 'msg',
-            'maxBytes': 1024*1024*100,
+            'maxBytes': 1024 * 1024 * 100,
             'backupCount': 2,
             'filename': GUNICORN_LOG_FILE,
         },
@@ -398,7 +399,7 @@ REST_FRAMEWORK = {
     'ORDERING_PARAM': "order",
     'SEARCH_PARAM': "search",
     'DATETIME_FORMAT': '%Y-%m-%d %H:%M:%S %z',
-    'DATETIME_INPUT_FORMATS': ['%Y-%m-%d %H:%M:%S %z'],
+    'DATETIME_INPUT_FORMATS': ['iso-8601', '%Y-%m-%d %H:%M:%S %z'],
     # 'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
     # 'PAGE_SIZE': 15
 }
@@ -417,6 +418,13 @@ FILE_UPLOAD_DIRECTORY_PERMISSIONS = 0o755
 # OTP settings
 OTP_ISSUER_NAME = CONFIG.OTP_ISSUER_NAME
 OTP_VALID_WINDOW = CONFIG.OTP_VALID_WINDOW
+
+# ALY settings
+ALY_ACCESS_KEY = CONFIG.ALY_ACCESS_KEY
+ALY_ACCESS_SECRET = CONFIG.ALY_ACCESS_SECRET
+ALY_REGION_LIST = CONFIG.ALY_REGION_LIST
+ENVIROMENT = CONFIG.ENVIROMENT
+AUTO_UPDATE_JUMPSERVER_ASSETS = CONFIG.AUTO_UPDATE_JUMPSERVER_ASSETS
 
 # Auth LDAP settings
 AUTH_LDAP = False
@@ -456,6 +464,8 @@ AUTH_OPENID_SERVER_URL = CONFIG.AUTH_OPENID_SERVER_URL
 AUTH_OPENID_REALM_NAME = CONFIG.AUTH_OPENID_REALM_NAME
 AUTH_OPENID_CLIENT_ID = CONFIG.AUTH_OPENID_CLIENT_ID
 AUTH_OPENID_CLIENT_SECRET = CONFIG.AUTH_OPENID_CLIENT_SECRET
+AUTH_OPENID_IGNORE_SSL_VERIFICATION = CONFIG.AUTH_OPENID_IGNORE_SSL_VERIFICATION
+AUTH_OPENID_SHARE_SESSION = CONFIG.AUTH_OPENID_SHARE_SESSION
 AUTH_OPENID_BACKENDS = [
     'authentication.backends.openid.backends.OpenIDAuthorizationPasswordBackend',
     'authentication.backends.openid.backends.OpenIDAuthorizationCodeBackend',
@@ -545,7 +555,6 @@ DEFAULT_TERMINAL_REPLAY_STORAGE = {
 TERMINAL_REPLAY_STORAGE = {
 }
 
-
 SECURITY_MFA_AUTH = False
 SECURITY_COMMAND_EXECUTION = True
 SECURITY_LOGIN_LIMIT_COUNT = 7
@@ -564,6 +573,7 @@ SECURITY_PASSWORD_RULES = [
     'SECURITY_PASSWORD_NUMBER',
     'SECURITY_PASSWORD_SPECIAL_CHAR'
 ]
+SECURITY_MFA_VERIFY_TTL = CONFIG.SECURITY_MFA_VERIFY_TTL
 
 TERMINAL_PASSWORD_AUTH = CONFIG.TERMINAL_PASSWORD_AUTH
 TERMINAL_PUBLIC_KEY_AUTH = CONFIG.TERMINAL_PUBLIC_KEY_AUTH
@@ -590,7 +600,6 @@ TOKEN_EXPIRATION = CONFIG.TOKEN_EXPIRATION
 DISPLAY_PER_PAGE = CONFIG.DISPLAY_PER_PAGE
 DEFAULT_EXPIRED_YEARS = 70
 USER_GUIDE_URL = ""
-
 
 SWAGGER_SETTINGS = {
     'DEFAULT_AUTO_SCHEMA_CLASS': 'jumpserver.swagger.CustomSwaggerAutoSchema',

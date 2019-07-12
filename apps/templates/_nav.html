@@ -27,6 +27,22 @@
         <li id="cmd-filter"><a href="{% url 'assets:cmd-filter-list' %}">{% trans 'Command filters' %}</a></li>
     </ul>
 </li>
+
+<li id="alicloud">
+    <a>
+        <i class="fa fa-cloud" style="width: 14px"></i> <span class="nav-label">{% trans 'AliCloud' %}</span><span class="fa arrow"></span>
+    </a>
+    <ul class="nav nav-second-level">
+        <li id="alicloud-ecs"><a href="{% url 'alicloud:alicloud-ecs-list' %}">{% trans 'Ecs' %}</a></li>
+        <li id="alicloud-slb"><a href="{% url 'alicloud:alicloud-slb-list' %}">{% trans 'Slb' %}</a></li>
+        <li id="alicloud-kvstore"><a href="{% url 'alicloud:alicloud-kvstore-list' %}">{% trans 'KvStore' %}</a></li>
+        <li id="alicloud-rds"><a href="{% url 'alicloud:alicloud-rds-list' %}">{% trans 'Rds' %}</a></li>
+        <li id="alicloud-oss"><a href="{% url 'alicloud:alicloud-oss-list' %}">{% trans 'Oss' %}</a></li>
+        <li id="alicloud-billing"><a href="{% url 'alicloud:alicloud-billing-query' %}">{% trans 'Billing' %}</a></li>
+
+    </ul>
+</li>
+
 {% if LICENSE_VALID %}
 <li id="applications">
     <a>
