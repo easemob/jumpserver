@@ -18,6 +18,7 @@ def default_node():
 
 class Rds(OrgModelMixin):
     id = models.UUIDField(default=uuid.uuid4, primary_key=True)
+    type = models.CharField(default='rds', max_length=128, verbose_name=_('AssetType'))
     instance_id = models.CharField(max_length=128, verbose_name=_('InstanceId'))
     network_type = models.CharField(max_length=128, verbose_name=_('NetworkType'))
     instance_name = models.CharField(max_length=128, verbose_name=_('InstanceName'))

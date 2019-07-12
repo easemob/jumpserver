@@ -19,6 +19,7 @@ def default_node():
 
 class Oss(OrgModelMixin):
     id = models.UUIDField(default=uuid.uuid4, primary_key=True)
+    type = models.CharField(default='oss', max_length=128, verbose_name=_('AssetType'))
     instance_id = models.CharField(max_length=128, verbose_name=_('InstanceId'))
     extranet_endpoint = models.CharField(max_length=128, null=True, blank=True, verbose_name=_('ConnectionDomain'))
     intranet_endpoint = models.CharField(max_length=128, verbose_name=_('NetworkType'))
