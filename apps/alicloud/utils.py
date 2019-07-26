@@ -56,10 +56,10 @@ class AliCloudUtil(object):
         for clt in self.clt_conn_list:
             pageNumber = 1
             while True:
-                pageNumber += 1
                 request.set_query_params(dict(PageNumber=pageNumber, PageSize=pageSize))
                 clt_result = json.loads(clt.do_action_with_exception(request))
                 result = clt_result['Instances']['Instance']
+                pageNumber += 1
                 if len(result) == 0:
                     print(pageNumber, clt_result['TotalCount'])
                     break
