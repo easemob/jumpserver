@@ -21,12 +21,11 @@ logger = get_logger(__file__)
 def sync_ecs_list_info_manual():
     logger.info('ready to sync aly cloud ecs list')
     ali_util = AliCloudUtil()
-    result = ali_util.get_ecs_instances()
     created, updated, failed = [], [], []
     j_created, j_updated, j_failed = [], [], []
     node = Node.root()
     Ecs.objects.all().update(status='Destory')
-    for info in result:
+    for info in ali_util.get_ecs_instances():
         logger.info(json.dumps(info))
         ecs = get_object_or_none(Ecs, instance_id=info.get('instance_id'))
         if not ecs:
@@ -137,11 +136,9 @@ def sync_ecs_list_info_manual():
 def sync_slb_list_info_manual():
     logger.info('ready to sync aly cloud slb list')
     ali_util = AliCloudUtil()
-    result = ali_util.get_slb_instances()
     created, updated, failed = [], [], []
-    node = Node.root()
     Slb.objects.all().update(status='Destory')
-    for info in result:
+    for info in ali_util.get_slb_instances():
         logger.info(json.dumps(info))
         slb = get_object_or_none(Slb, instance_id=info.get('instance_id'))
         if not slb:
@@ -189,11 +186,9 @@ def sync_slb_list_info_manual():
 def sync_rds_list_info_manual():
     logger.info('ready to sync aly cloud rds list')
     ali_util = AliCloudUtil()
-    result = ali_util.get_rds_instances()
     created, updated, failed = [], [], []
-    node = Node.root()
     Rds.objects.all().update(status='Destory')
-    for info in result:
+    for info in ali_util.get_rds_instances():
         logger.info(json.dumps(info))
         rds = get_object_or_none(Rds, instance_id=info.get('instance_id'))
         if not rds:
@@ -241,11 +236,9 @@ def sync_rds_list_info_manual():
 def sync_kvstore_list_info_manual():
     logger.info('ready to sync aly cloud kvstore list')
     ali_util = AliCloudUtil()
-    result = ali_util.get_kvstore_instances()
     created, updated, failed = [], [], []
-    node = Node.root()
     KvStore.objects.all().update(status='Destory')
-    for info in result:
+    for info in ali_util.get_kvstore_instances():
         logger.info(json.dumps(info))
         kvstore = get_object_or_none(KvStore, instance_id=info.get('instance_id'))
         if not kvstore:
@@ -293,11 +286,10 @@ def sync_kvstore_list_info_manual():
 def sync_oss_list_info_manual():
     logger.info('ready to sync aly cloud oss list')
     ali_util = AliCloudUtil()
-    result = ali_util.get_oss_instances()
     created, updated, failed = [], [], []
     node = Node.root()
     Oss.objects.all().update(status='Destory')
-    for info in result:
+    for info in ali_util.get_oss_instances():
         logger.info(json.dumps(info))
         oss = get_object_or_none(Oss, instance_id=info.get('instance_id'))
         if not oss:
