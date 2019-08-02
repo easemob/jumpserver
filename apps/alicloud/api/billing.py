@@ -5,6 +5,9 @@
 # Last Modified: x
 # e6b0b8e8bf9ce5b9b4e8bdbbefbc8ce6b0b8e8bf9ce783ade6b3aae79b88e79cb6
 #
+
+import arrow
+
 from datetime import datetime, timedelta
 
 from django.db.models import Q
@@ -20,13 +23,20 @@ from django.db.models import Sum
 
 
 class BillingQuerySyncTask(APIView):
-
     def post(self, *args, **kwargs):
         data = self.request.data
         begin_time = data.get('begin_time', None)
         end_time = data.get('end_time', None)
-        task = sync_billing_info_manual.delay(begin_time, end_time)
-        return Response({"task": task.id})
+        dateformat = "%Y-%m-%dT%H:%M:%SZ"
+
+        taskids = list()
+        for bill_cycle in [m[0].format("YYYY-MM") for m in arrow.Arrow.span_range('month',
+                                                                                  datetime.strptime(begin_time,
+                                                                                                    dateformat),
+                                                                                  datetime.strptime(end_time,
+                                                                                                    dateformat))]:
+            taskids.append(sync_billing_info_manual.delay(bill_cycle).id)
+        return Response({"task": taskids})
 
 
 class BillingQuery(APIView):
@@ -34,26 +44,32 @@ class BillingQuery(APIView):
     end_time = None
     node = None
 
+    def _get_bill_cycles(self):
+        if self.begin_time:
+            dateformat = "%Y-%m-%dT%H:%M:%SZ"
+            return [m[0].format("YYYY-MM") for m in arrow.Arrow.span_range('month',
+                                                                           datetime.strptime(
+                                                                               self.begin_time,
+                                                                               dateformat),
+                                                                           datetime.strptime(
+                                                                               self.end_time,
+                                                                               dateformat))]
+        return None
+
     def get(self, *args, **kwargs):
         self.begin_time = self.request.query_params.get('begin_time', None)
         self.end_time = self.request.query_params.get('end_time', None)
         node_key = self.request.query_params.get('key')
 
-        if node_key:
-            self.node = Node.objects.get(key=node_key)
-            # queryset = self.node.get_all_assets()
-            # print(queryset)
-            queryset = [self.node]
+        if not node_key or (node_key == "1"):
+            # self.node = Node.root()
+            # queryset = [self.node]
+            queryset = None
         else:
-            self.node = Node.root()
-            # queryset = list(self.node.get_children(with_self=True))
-            # nodes_invalid = Node.objects.exclude(key__startswith=self.node.key)
-            # queryset.extend(list(nodes_invalid))
-            queryset = [self.node]
-        queryset = sorted(queryset)
-        print(queryset)
+            self.node = Node.objects.get(key=node_key)
+            queryset = sorted([self.node])
         info = self.get_node_money(queryset)
-        return info
+        return Response(info)
 
     def get_node_money(self, node_keys):
         """
@@ -61,55 +77,61 @@ class BillingQuery(APIView):
         :param node_keys:
         :return:
         """
+
         res_data = {}
-        total_money = 0
-        for node_key in node_keys:
-            # 新增节点
-            node_info = {
-                'ecs': {
-                    'money': 0,
-                },
-                'slb': {
-                    'money': 0,
-                },
-                'kvstore': {
-                    'money': 0,
-                },
-                'rds': {
-                    'money': 0,
-                },
-                'oss': {
-                    'money': 0,
-                }
-            }
+        total_money = 0.0
+        if node_keys:
+            for node_key in node_keys:
+                node_money = 0.0
+                res_data[node_key.key] = dict()
+                _, instance_info = self.get_all_instance(node_key.key)
+                for node_info in instance_info:
+                    money = self.get_instance_payment(node_info.instance_id)
+                    total_money += money
+                    node_money += money
+                    if node_info.type in res_data[node_key.key].keys():
+                        res_data[node_key.key][node_info.type]["money"] += money
+                        res_data[node_key.key][node_info.type]["instance_list"][node_info.instance_id]=dict(
+                            money=money, instance_name=node_info.instance_name
+                        )
+                    else:
+                        res_data[node_key.key][node_info.type] = dict(
+                            money=money, instance_list={node_info.instance_id: dict(
+                                money=money, instance_name=node_info.instance_name
+                            )})
+                res_data[node_key.key]["node_money"] = node_money
+        else:
+            res_data["1"] = dict()
+            bill_cycles = self._get_bill_cycles()
+            result = Billing.objects.filter(cycle__in=bill_cycles) \
+                .values('product_code', 'product_name') \
+                .annotate(total_money=Sum('payment_amount'))
+            for t in result:
+                total_money += t["total_money"]
+                res_data["1"][t["product_code"]] = dict(money=t["total_money"],
+                    instance_list={t["product_code"]: dict(money=t["total_money"], instance_name=t["product_name"])})
+            res_data["1"]["node_money"] = total_money
 
-            instance_num, instance_info = self.get_all_instance(node_key)
-            # 节点下实例花费金额
-            node_money = 0
-
-            for _type, instances in instance_info.items():
-                instance_list = {}
-                for i in instances:
-                    instance_money = self.get_orders_payment(i.instance_id)
-                    instance_list[i.instance_id] = {
-                        'money': instance_money,
-                        'instance_name': i.instance_name
-                    }
-                    node_money += instance_money
-
-                    # 节点类型下总数据
-                    node_info[_type]['money'] += instance_money
-
-                # noinspection PyTypeChecker
-                node_info[_type]['instance_list'] = instance_list
-
-            # 节点总花费
-            node_info['node_money'] = node_money
-
-            res_data[node_key.key] = node_info
-            total_money += node_money
         res_data['total_money'] = total_money
-        return Response(res_data)
+        return res_data
+
+    def get_instance_payment(self, instance_id):
+        """
+        获取目标实例的订单金额
+        :param instance_id: 实例ID
+        :return float: money
+        """
+        if not self.begin_time:
+            bill_cycles = [arrow.utcnow().format('YYYY-MM')]
+        else:
+            bill_cycles = self._get_bill_cycles()
+        orders_info = Billing.objects.filter(
+            cycle__in=bill_cycles,
+            instance_id=instance_id
+        ).aggregate(Sum('payment_amount'))
+        if orders_info['payment_amount__sum']:
+            return orders_info['payment_amount__sum']
+        return 0.0
 
     def get_orders_payment(self, instance_id):
         """
@@ -125,9 +147,9 @@ class BillingQuery(APIView):
             begin_time = datetime.strptime(self.begin_time, "%Y-%m-%dT%H:%M:%SZ")
             end_time = datetime.strptime(self.end_time, "%Y-%m-%dT%H:%M:%SZ")
         orders_info = Billing.objects.filter(
-                payment_time__range=(begin_time, end_time),
-                instance_ids__contains=instance_id
-            ).aggregate(Sum('payment_amount'))
+            payment_time__range=(begin_time, end_time),
+            instance_ids__contains=instance_id
+        ).aggregate(Sum('payment_amount'))
         if orders_info['payment_amount__sum']:
             return orders_info['payment_amount__sum']
         return 0.0
@@ -139,33 +161,12 @@ class BillingQuery(APIView):
         :param node:
         :return:
         """
-        pattern = r'^{0}$|^{0}:'.format(node.key)
-        args = []
-        kwargs = {}
 
-        if node.is_root():
-            args.append(Q(nodes__key__regex=pattern) | Q(nodes=None))
-        else:
-            kwargs['nodes__key__regex'] = pattern
+        assets_ids = Node.objects.filter(key__startswith=node)
+        assets_list = Asset.objects.filter(node_id__in=assets_ids)
+        total_num = assets_list.count()
 
-        ecs_assets = Ecs.objects.filter(*args, **kwargs).distinct()
-        slb_assets = Slb.objects.filter(*args, **kwargs).distinct()
-        kvstore_assets = KvStore.objects.filter(*args, **kwargs).distinct()
-        rds_assets = Rds.objects.filter(*args, **kwargs).distinct()
-        oss_assets = Oss.objects.filter(*args, **kwargs).distinct()
-
-        assets = {
-            'ecs': list(ecs_assets),
-            'slb': list(slb_assets),
-            'kvstore': list(kvstore_assets),
-            'rds': list(rds_assets),
-            'oss': list(oss_assets)
-        }
-
-        total_num = ecs_assets.count() + slb_assets.count() + kvstore_assets.count() + \
-            rds_assets.count() + oss_assets.count()
-
-        return total_num, assets
+        return total_num, assets_list
 
 
 class BillingQueryNode(ListAPIView):
@@ -266,6 +267,3 @@ class BillingQueryNode(ListAPIView):
         else:
             assets = []
         return len(assets)
-
-
-

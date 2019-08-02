@@ -13,10 +13,10 @@ from aliyunsdkr_kvstore.request.v20150101 import DescribeInstancesRequest as kvI
 from aliyunsdkr_kvstore.request.v20150101 import DescribeInstanceAttributeRequest
 from aliyunsdkbssopenapi.request.v20171214.QueryOrdersRequest import QueryOrdersRequest
 from aliyunsdkbssopenapi.request.v20171214.GetOrderDetailRequest import GetOrderDetailRequest
+from aliyunsdkbssopenapi.request.v20171214.QueryInstanceBillRequest import QueryInstanceBillRequest
 from django.conf import settings
 
 from common.utils import get_logger
-
 
 class AliCloudUtil(object):
     def __init__(self):
@@ -178,6 +178,16 @@ class AliCloudUtil(object):
                 'status': "Running",
                 'create_time': dt
             }
+
+    def get_bill_instances(self, billing_cycle, page_size=None, page_num=None):
+        client = AcsClient(self.AccessKeyId, self.AccessKeySecret, 'cn-hangzhou')
+        request = QueryInstanceBillRequest()
+        request.set_accept_format('json')
+        request.set_BillingCycle(billing_cycle)
+        if page_num: request.set_PageNum(page_num)
+        if page_size: request.set_PageSize(page_size)
+        response = client.do_action_with_exception(request)
+        return json.loads(str(response, encoding='utf-8'))
 
     def get_order_result(self, request):
         client = AcsClient(self.AccessKeyId, self.AccessKeySecret, 'cn-hangzhou')

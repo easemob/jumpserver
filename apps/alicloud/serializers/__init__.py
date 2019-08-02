@@ -6,3 +6,4 @@ from .oss import *
 from .rds import *
 from .kvstore import *
 from .billing import *
+from .asset import *
