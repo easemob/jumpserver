@@ -1,6 +1,8 @@
 # ~*~ coding: utf-8 ~*~
 import json
 import re
+import time
+import arrow
 
 from celery import shared_task
 from django.db import transaction
@@ -12,6 +14,10 @@ from assets.models import Node, Asset
 from .utils import AliCloudUtil
 from common.utils import get_logger, get_object_or_none
 from django.conf import settings
+
+from apps.jumpserver.settings import CACHES
+from redis import Redis
+from aliyunsdkcore.acs_exception.exceptions import ServerException
 
 logger = get_logger(__file__)
 
@@ -366,87 +372,64 @@ def auto_allocate_asset_node(name, asset_type):
 
 @shared_task
 @register_as_period_task(interval=3600*24)
-def sync_billing_info_manual(begin_time=None, end_time=None):
+def sync_billing_info_manual(bill_cycle=None, page_size=100):
+    # check bill_cycle
+    if not bill_cycle:
+        bill_cycle = arrow.utcnow().replace(days=-1).format('YYYY-MM')
+
     logger.info('ready to sync aly cloud billing list')
-    logger.info(f'同步订单区间为: {begin_time}______{end_time}')
+    logger.info(f'billing sync cycle: {bill_cycle}')
+
+    redis_con = Redis.from_url(CACHES["default"]["LOCATION"])
+    instance_key = f'bill:sync:{bill_cycle}:instances'
+    if redis_con.exists(instance_key):
+        logger.warn(f'billing sync {bill_cycle} task is running, skip')
+        return True
 
     ali_util = AliCloudUtil()
+    page_num = 1
+    total_count = 0
 
-    orders_num = 0  # 订单条数
-    orders_details_num = 0  # 订单详情条数
-    sync_success_orders = []
-    sync_error_orders = {}
-    sync_skip_orders = {}
+    while True:
+        try:
+            bills = ali_util.get_bill_instances(bill_cycle, page_size=page_size, page_num=page_num)
+        except ServerException:
+            logger.info("flow control, sleep 10s and contine")
+            time.sleep(10)
+            continue
 
-    for orders in ali_util.get_orders_list(begin_time, end_time):
-        logger.info(json.dumps(orders))
-        orders_info = orders["Data"]["OrderList"]["Order"]
-        for i in orders_info:
-            order_summary = i
-            order_id = order_summary['OrderId']
-            if order_summary["PaymentStatus"] != "Paid":
-                info = f"error {order_id}, 订单状态未支付, 跳过"
-                logger.info(info)
-                sync_skip_orders[order_id] = info
+        if bills['Data']['TotalCount'] > 0:
+            for b in bills['Data']['Items']['Item']:
+                key = f'bill::sync::{bill_cycle}::{b["ProductCode"]}::{b["ProductName"]}::{b["InstanceID"]}'
+                redis_con.sadd(instance_key, key)
+                redis_con.incrbyfloat(key, b["PaymentAmount"])
+                total_count += 1
 
-            elif order_summary["PretaxGrossAmount"] == 0.0:
-                info = f"error {order_id}, 交易金额为0, 跳过"
-                logger.info(info)
-                sync_skip_orders[order_id] = info
+                if total_count % 1000 == 0:
+                    time.sleep(10)
 
-            elif order_summary.get("PretaxGrossAmount") is None:
-                info = f"error {order_id}, 错误订单, 没有类型"
-                logger.info(info)
-                sync_skip_orders[order_id] = info
+            if total_count == bills['Data']['TotalCount']:
+                break
+        else:
+            break
+        page_num += 1
 
-            else:
-                try:
-                    details = ali_util.get_orders_details(order_id)
-                    infos = details["Data"]["OrderList"]["Order"]
-                    table_row_num = 0
-                    for d in infos:
-                        instance_ids = json.loads(d['InstanceIDs'])
-                        for f in instance_ids:
-                            f_payment_amount = d['PretaxAmount'] / len(instance_ids)
-                            f_payment_gross_amount = d['PretaxAmount'] / len(instance_ids)
-                            row_data = {
-                                'product_code': d['ProductCode'],
-                                'order_id': d['OrderId'],
-                                'order_id_index': table_row_num,
-                                'payment_status': d['PaymentStatus'],
-                                'payment_time': d['PaymentTime'],
-                                'order_type': d['OrderType'],
-                                'create_time': d['CreateTime'],
-                                'payment_gross_amount': f_payment_gross_amount,
-                                'payment_amount': f_payment_amount,
-                                'instance_ids': f,
-                            }
-                            sd = Billing.objects.filter(order_id=d['OrderId'], order_id_index=table_row_num).count()
-                            if sd > 0:
-                                logger.info(f"重复录入 {d['OrderId']}")
-                                break
+    logger.info(f'sync {bill_cycle} billing total count: {total_count}')
 
-                            Billing.objects.create(**row_data)
-                            table_row_num += 1
-                        orders_details_num += 1
-                    orders_num += 1
-                    sync_success_orders.append(order_id)
-                    logger.info(f"ok {order_id}")
-                except Exception as e:
-                    err = f"error {order_id} => {e}"
-                    sync_error_orders['order_id'] = err
-                    logger.error(err)
+    for k in redis_con.sscan_iter(instance_key):
+        product_code, product_name, instance_id = str(k, encoding = "utf-8").strip("'").split('::')[-3:]
+        payment_amount = float(redis_con.get(k))
+        row_data = {
+            'instance_id': instance_id,
+            'cycle': bill_cycle,
+            'product_name': product_name,
+            'product_code': product_code,
+            'payment_amount': payment_amount
+        }
+        Billing.objects.update_or_create(**row_data)
+        redis_con.delete(k)
+    redis_con.delete(instance_key)
 
-    data = {
-        'orders_numbers': orders_num,
-        'sync_error_orders': sync_error_orders,
-        'sync_skip_orders': sync_skip_orders,
-        'sync_success_orders': sync_success_orders
-    }
-    logger.info(data)
-    logger.info('sync finish')
-    if len(sync_error_orders) != 0:
-        return False, data
-    return True, data
-
+    logger.info(f'sync {bill_cycle} billing success .')
+    return True
 

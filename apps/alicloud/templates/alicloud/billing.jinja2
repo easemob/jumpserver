@@ -123,21 +123,35 @@
                                     <h1>
                                         总计花费: ¥&nbsp;<span class="total-money">0</span>
                                     </h1>
-                                    <h3>
-                                        ECS: ¥&nbsp;<span class="ecs-money">0</span>
-                                    </h3>
-                                    <h3>
-                                        SLB: ¥&nbsp;<span class="slb-money">0</span>
-                                    </h3>
-                                    <h3>
-                                        RDS: ¥&nbsp;<span class="rds-money">0</span>
-                                    </h3>
-                                    <h3>
-                                        OSS: ¥&nbsp;<span class="oss-money">0</span>
-                                    </h3>
-                                    <h3>
-                                        KvStore: ¥&nbsp;<span class="kvstore-money">0</span>
-                                    </h3>
+                                    <ul class="total-money-chat">
+                                        <lo align="left">
+                                            <h3>
+                                                ECS: ¥&nbsp;<span class="ecs-money">0</span>
+                                            </h3>
+                                        </lo>
+                                        <lo>
+                                            <h3>
+                                                SLB: ¥&nbsp;<span class="slb-money">0</span>
+                                            </h3>
+                                        </lo>
+                                        <lo>
+                                            <h3>
+                                                RDS: ¥&nbsp;<span class="rds-money">0</span>
+                                            </h3>
+                                        </lo>
+                                        <lo>
+                                            <h3>
+                                                OSS: ¥&nbsp;<span class="oss-money">0</span>
+                                            </h3>
+                                        </lo>
+                                        <lo>
+                                            <h3>
+                                                Redis: ¥&nbsp;<span class="redisa-money">0</span>
+                                            </h3>
+                                        </lo>
+                                    </ul>
+                                    </li>
+
                                 </div>
                                 <div class="col-lg-8">
                                     <div id="money_type_pie" style="height: 500px">左侧点击资产树节点查询费用信息</div>
@@ -289,14 +303,17 @@
             let d = Object.values(org_table_data)[0];
             $('.total-money').html(d.node_money.toFixed(2));
             $.each(d, function(instance_type, instance_data) {
-                if ('ecsossslbkvstorerds'.indexOf(instance_type) >= 0) {
+                if (instance_type=="node_money"){
+                    return true;
+                }
+{#                if ('ecsossslbkvstorerds'.indexOf(instance_type) >= 0) {#}
                     $('.' + instance_type + '-money').html(instance_data.money);
                     legend_data.push(instance_type);
                     series_data.push({
                         name: instance_type,
                         value: instance_data.money
                     });
-                }
+{#                }#}
             });
             let option = {
                 title : {
@@ -413,9 +430,14 @@
 
             function success_fun(data) {
                 rMenu.css({"visibility": "hidden"});
-                let task_id = data.task;
-                let url = '{% url "ops:celery-task-log" pk=DEFAULT_PK %}'.replace("{{ DEFAULT_PK }}", task_id);
-                window.open(url, '', '');
+                let taskids = data.task;
+                for(index in taskids){
+                    let url = '{% url "ops:celery-task-log" pk=DEFAULT_PK %}'.replace("{{ DEFAULT_PK }}", taskids[index]);
+                    window.open(url, '', '');
+                }
+
+
+
             }
             APIUpdateAttr({
                 url: url,
