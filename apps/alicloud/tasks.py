@@ -392,7 +392,7 @@ def sync_billing_info_manual(bill_cycle=None, page_size=100):
 
     while True:
         try:
-            bills = ali_util.get_bill_instances(bill_cycle, page_size=page_size, page_num=page_num)
+            bills = ali_util.get_bill_instances(billing_cycle=bill_cycle, page_size=page_size, page_num=page_num)
         except ServerException:
             logger.info("flow control, sleep 10s and contine")
             time.sleep(10)
@@ -424,11 +424,27 @@ def sync_billing_info_manual(bill_cycle=None, page_size=100):
             'cycle': bill_cycle,
             'product_name': product_name,
             'product_code': product_code,
-            'payment_amount': payment_amount
+            'payment_amount': payment_amount,
+            'defaults': dict(payment_amount=payment_amount)
         }
         Billing.objects.update_or_create(**row_data)
         redis_con.delete(k)
     redis_con.delete(instance_key)
+
+    logger.info(f'sync {bill_cycle} billing domian from overview start . ')
+
+    for domain in  ali_util.get_bill_overview(billing_cycle=bill_cycle, product_code="domain")['Data']['Items']['Item']:
+        row_data = {
+            'instance_id': bill_cycle + domain["ProductType"],
+            'cycle': bill_cycle,
+            'product_name': domain["ProductName"],
+            'product_code': domain["ProductCode"],
+            'payment_amount': domain["PaymentAmount"],
+            'defaults': dict(payment_amount=domain["PaymentAmount"])
+        }
+        Billing.objects.update_or_create(**row_data)
+
+    logger.info(f'sync {bill_cycle} billing domian from overview end . ')
 
     logger.info(f'sync {bill_cycle} billing success .')
     return True
