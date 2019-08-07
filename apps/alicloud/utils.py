@@ -14,6 +14,7 @@ from aliyunsdkr_kvstore.request.v20150101 import DescribeInstanceAttributeReques
 from aliyunsdkbssopenapi.request.v20171214.QueryOrdersRequest import QueryOrdersRequest
 from aliyunsdkbssopenapi.request.v20171214.GetOrderDetailRequest import GetOrderDetailRequest
 from aliyunsdkbssopenapi.request.v20171214.QueryInstanceBillRequest import QueryInstanceBillRequest
+from aliyunsdkbssopenapi.request.v20171214.QueryBillOverviewRequest import QueryBillOverviewRequest
 from django.conf import settings
 
 from common.utils import get_logger
@@ -186,6 +187,16 @@ class AliCloudUtil(object):
         request.set_BillingCycle(billing_cycle)
         if page_num: request.set_PageNum(page_num)
         if page_size: request.set_PageSize(page_size)
+        response = client.do_action_with_exception(request)
+        return json.loads(str(response, encoding='utf-8'))
+
+    def get_bill_overview(self, billing_cycle, product_code=None):
+        client = AcsClient(self.AccessKeyId, self.AccessKeySecret, 'cn-hangzhou')
+        request = QueryBillOverviewRequest()
+        request.set_accept_format('json')
+        request.set_BillingCycle(billing_cycle)
+        if product_code:
+            request.set_ProductCode(product_code)
         response = client.do_action_with_exception(request)
         return json.loads(str(response, encoding='utf-8'))
 
