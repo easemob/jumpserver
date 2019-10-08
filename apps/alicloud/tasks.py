@@ -424,7 +424,6 @@ def sync_billing_info_manual(bill_cycle=None, page_size=100):
             'cycle': bill_cycle,
             'product_name': product_name,
             'product_code': product_code,
-            'payment_amount': payment_amount,
             'defaults': dict(payment_amount=payment_amount)
         }
         Billing.objects.update_or_create(**row_data)
@@ -439,7 +438,6 @@ def sync_billing_info_manual(bill_cycle=None, page_size=100):
             'cycle': bill_cycle,
             'product_name': domain["ProductName"],
             'product_code': domain["ProductCode"],
-            'payment_amount': domain["PaymentAmount"],
             'defaults': dict(payment_amount=domain["PaymentAmount"])
         }
         Billing.objects.update_or_create(**row_data)
