@@ -432,15 +432,26 @@ def sync_billing_info_manual(bill_cycle=None, page_size=100):
 
     logger.info(f'sync {bill_cycle} billing domian from overview start . ')
 
-    for domain in  ali_util.get_bill_overview(billing_cycle=bill_cycle, product_code="domain")['Data']['Items']['Item']:
-        row_data = {
-            'instance_id': bill_cycle + domain["ProductType"],
-            'cycle': bill_cycle,
-            'product_name': domain["ProductName"],
-            'product_code': domain["ProductCode"],
-            'defaults': dict(payment_amount=domain["PaymentAmount"])
-        }
-        Billing.objects.update_or_create(**row_data)
+    for pi in  ali_util.get_bill_overview(billing_cycle=bill_cycle)['Data']['Items']['Item']:
+        if pi["ProductName"] == "域名":
+            row_data = {
+                'instance_id': bill_cycle + pi["ProductType"],
+                'cycle': bill_cycle,
+                'product_name': pi["ProductName"],
+                'product_code': pi["ProductCode"],
+                'defaults': dict(payment_amount=pi["PaymentAmount"])
+            }
+            Billing.objects.update_or_create(**row_data)
+
+        if pi["ProductName"] == "云虚拟主机":
+            row_data = {
+                'instance_id': bill_cycle + "-hosting",
+                'cycle': bill_cycle,
+                'product_name': pi["ProductName"],
+                'product_code': "hosting",
+                'defaults': dict(payment_amount=pi["PaymentAmount"])
+            }
+            Billing.objects.update_or_create(**row_data)
 
     logger.info(f'sync {bill_cycle} billing domian from overview end . ')
 
