@@ -282,15 +282,25 @@
                 $.each(node_value, function(instance_type, instance_data) {
                     let instance_list = instance_data['instance_list'];
                     if (instance_list !== undefined) {
+                        const tmp_array = []
                         $.each(instance_list, function(instance_id, info) {
-                            let s = template_str.replace('instance_type', instance_type)
-                                .replace('instance_id', instance_id)
-                                .replace('instance_name', info.instance_name)
-                                .replace('money', info.money);
-                            if ( instance_id.indexOf(key_word) !== -1 || info.instance_name.indexOf(key_word) !== -1 ) {
-                                $('#tables_data_body').append(s);
-                            }
+                            tmp_array.push(instance_id+"$"+info.money)
                         })
+                       const sort_array = tmp_array.sort(function(a, b){
+                            return b.split('$')[1] - a.split('$')[1]
+                       })
+                       sort_array.forEach(function(key){
+                            let instance_id = key.split('$')[0]
+                            let info = instance_list[instance_id]
+                            let s = template_str.replace('instance_type', instance_type)
+                                    .replace('instance_id', instance_id)
+                                    .replace('instance_name', info.instance_name)
+                                    .replace('money', info.money);
+                             if ( instance_id.indexOf(key_word) !== -1 || info.instance_name.indexOf(key_word) !== -1 ) {
+                                 $('#tables_data_body').append(s);
+                             }
+                       })
+
                     }
                 })
             })
@@ -350,7 +360,7 @@
             let p1 = echarts.init(document.getElementById('money_type_pie'));
             p1.setOption(option);
         }
-        
+
         {#// 资产树#}
         function onSelected(event, treeNode) {
             current_node = treeNode;
@@ -403,7 +413,7 @@
             rMenu = $("#rMenu");
         }
 
-        
+
 
         {#// 绑定的其他方法#}
         $(document).ready(function () {
