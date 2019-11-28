@@ -86,7 +86,7 @@ def sync_ecs_list_info_manual():
                                 domain = None
                                 admin_user = None
                         attr = {
-                            'number': 'instance_id',
+                            'number': info.get('instance_id'),
                             'ip': info.get('inner_ip'),
                             'port': 3299,
                             'hostname': hostname,
