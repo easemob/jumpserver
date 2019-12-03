@@ -65,6 +65,7 @@ def sync_ecs_list_info_manual():
                 try:
                     with transaction.atomic():
                         hostname = info.get('instance_name')
+                        admin_user, domain = auto_get_admin_and_domain(hostname)
                         attr = {
                             'number': info.get('instance_id'),
                             'ip': info.get('inner_ip'),
@@ -73,9 +74,10 @@ def sync_ecs_list_info_manual():
                             'protocols': 'ssh/3299',
                             'hostname': hostname,
                             'platform': 'Linux',
-                            'domain': None,
-                            'admin_user': None
+                            'domain': admin_user,
+                            'admin_user': domain
                         }
+                        logger.info('jumpserver asset create info {}'.format(attr))
                         asset = JAssets.objects.create(**attr)
                         # need to add auto join node
                         asset.nodes.set([node])
@@ -83,7 +85,8 @@ def sync_ecs_list_info_manual():
                 except Exception as e:
                     j_failed.append('%s: %s' % (info['instance_name'], str(e)))
             else:
-                setattr(ecs, 'hostname', info.get('hostname'))
+                setattr(asset, 'hostname', info.get('instance_name'))
+                setattr(asset, 'ip', info.get('inner_ip'))
                 try:
                     asset.save()
                     j_updated.append(info['instance_name'])
@@ -102,19 +105,21 @@ def sync_ecs_list_info_manual():
     }
     logger.info('ecs sync finish')
     logger.info(json.dumps(data))
-    j_data = {
-        'created': j_created,
-        'created_info': 'Created {}'.format(len(j_created)),
-        'updated': j_updated,
-        'updated_info': 'Updated {}'.format(len(j_updated)),
-        'failed': j_failed,
-        'failed_info': 'Failed {}'.format(len(j_failed)),
-        'valid': True,
-        'msg': 'Created: {}. Updated: {}, Error: {}'.format(
-            len(j_created), len(j_updated), len(j_failed))
-    }
-    logger.info('jump server asset update finish')
-    logger.info(json.dumps(j_data))
+    if settings.AUTO_UPDATE_JUMPSERVER_ASSETS:
+        clean_destory_assets_in_jumpserver()
+        j_data = {
+            'created': j_created,
+            'created_info': 'Created {}'.format(len(j_created)),
+            'updated': j_updated,
+            'updated_info': 'Updated {}'.format(len(j_updated)),
+            'failed': j_failed,
+            'failed_info': 'Failed {}'.format(len(j_failed)),
+            'valid': True,
+            'msg': 'Created: {}. Updated: {}, Error: {}'.format(
+                len(j_created), len(j_updated), len(j_failed))
+        }
+        logger.info('jump server asset update finish')
+        logger.info(json.dumps(j_data))
 
     return data
 
@@ -320,6 +325,27 @@ def sync_oss_list_info_manual():
     return data
 
 
+def auto_get_admin_and_domain(name):
+    admin_user, domain = None, None
+    logger.info('try to auto get amdin_user and domain with {}'.format(name))
+    num_list = re.findall(r"\d+", name)
+    if len(num_list):
+        name = name[:name.index(num_list[-1])]
+    logger.info('try to find name {}'.format(name))
+    asset = JAssets.objects.filter(hostname__contains=name).exclude(
+        Q(admin_user=None) | Q(domain=None)).first()
+    if asset:
+        admin_user = asset.admin_user
+        domain = asset.doamin
+        logger.info('auto set {} admin_user:{} domain:{}'.format(name, admin_user, domain))
+    return admin_user, domain
+
+
+def clean_destory_assets_in_jumpserver():
+    destroy_assets = Ecs.objects.values("instance_id").filter(status='Destory')
+    JAssets.objects.filter(number__in=[asset.get('instance_id') for asset in destroy_assets]).delete()
+
+
 def auto_allocate_asset_node(name, asset_type):
     logger.info('auto allocate {} {}'.format(name, asset_type))
     num_list = re.findall(r"\d+", name)
@@ -353,7 +379,7 @@ def auto_allocate_asset_node(name, asset_type):
 
 
 @shared_task
-@register_as_period_task(interval=3600*24)
+@register_as_period_task(interval=3600 * 24)
 def sync_billing_info_manual(bill_cycle=None, page_size=100):
     # check bill_cycle
     if not bill_cycle:
@@ -399,7 +425,7 @@ def sync_billing_info_manual(bill_cycle=None, page_size=100):
     logger.info(f'sync {bill_cycle} billing total count: {total_count}')
 
     for k in redis_con.sscan_iter(instance_key):
-        product_code, product_name, instance_id = str(k, encoding = "utf-8").strip("'").split('::')[-3:]
+        product_code, product_name, instance_id = str(k, encoding="utf-8").strip("'").split('::')[-3:]
         payment_amount = float(redis_con.get(k))
         row_data = {
             'instance_id': instance_id,
@@ -414,7 +440,7 @@ def sync_billing_info_manual(bill_cycle=None, page_size=100):
 
     logger.info(f'sync {bill_cycle} billing domian from overview start . ')
 
-    for pi in  ali_util.get_bill_overview(billing_cycle=bill_cycle)['Data']['Items']['Item']:
+    for pi in ali_util.get_bill_overview(billing_cycle=bill_cycle)['Data']['Items']['Item']:
         if pi["ProductName"] == "域名":
             row_data = {
                 'instance_id': bill_cycle + pi["ProductType"],
@@ -439,4 +465,3 @@ def sync_billing_info_manual(bill_cycle=None, page_size=100):
 
     logger.info(f'sync {bill_cycle} billing success .')
     return True
-
