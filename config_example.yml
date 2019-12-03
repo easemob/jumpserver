@@ -83,3 +83,4 @@ AUTO_UPDATE_JUMPSERVER_ASSETS: false
 ALY_ACCESS_KEY: ''
 ALY_ACCESS_SECRET: ''
 ALY_REGION_LIST: ['cn-hangzhou', 'cn-beijing', 'us-west-1', 'cn-hongkong', 'eu-central-1']
+DIDI_ACCESS_TOKEN: ''

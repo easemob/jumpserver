@@ -10,7 +10,8 @@ from django.db.models import Q
 
 from ops.celery.decorator import register_as_period_task
 from .models import *
-from assets.models import Node, Asset
+from assets.models import Node
+from assets.models import Asset as JAssets
 from .utils import AliCloudUtil
 from common.utils import get_logger, get_object_or_none
 from django.conf import settings
@@ -59,42 +60,23 @@ def sync_ecs_list_info_manual():
                 failed.append('%s: %s' % (info['instance_name'], str(e)))
 
         if settings.AUTO_UPDATE_JUMPSERVER_ASSETS:
-            asset = get_object_or_none(Asset, number=info.get('instance_id'))
+            asset = get_object_or_none(JAssets, number=info.get('instance_id'))
             if not asset:
                 try:
                     with transaction.atomic():
                         hostname = info.get('instance_name')
-                        domain = None
-                        admin_user = None
-                        if settings.ENVIROMENT == 'PROD':
-                            if 'ebs' in hostname:
-                                domain = 'ebs'
-                                admin_user = 'ebs-console'
-                            elif 'vip6' in hostname:
-                                domain = 'vip6'
-                                admin_user = 'vip6-console'
-                            elif 'hsb' in hostname:
-                                domain = 'hsb'
-                                admin_user = 'hsb-console'
-                            elif 'vip5' in hostname:
-                                domain = 'vip5'
-                                admin_user = 'vip6-console'
-                            elif 'usa' in hostname:
-                                domain = 'osu'
-                                admin_user = 'usa-console'
-                            else:
-                                domain = None
-                                admin_user = None
                         attr = {
                             'number': info.get('instance_id'),
                             'ip': info.get('inner_ip'),
                             'port': 3299,
+                            'protocol': 'ssh',
+                            'protocols': 'ssh/3299',
                             'hostname': hostname,
                             'platform': 'Linux',
-                            'domain': domain,
-                            'admin_user': admin_user
+                            'domain': None,
+                            'admin_user': None
                         }
-                        asset = Asset.objects.create(**attr)
+                        asset = JAssets.objects.create(**attr)
                         # need to add auto join node
                         asset.nodes.set([node])
                         j_created.append(info['instance_name'])
