@@ -3,10 +3,9 @@ from __future__ import absolute_import, unicode_literals
 from django.views.generic import TemplateView
 from django.utils.translation import ugettext_lazy as _
 from assets.models import Node, Label
-from common.permissions import AdminUserRequiredMixin
 
 
-class BillingView(AdminUserRequiredMixin, TemplateView):
+class BillingView(TemplateView):
     template_name = 'alicloud/billing.jinja2'
 
     def get_context_data(self, **kwargs):

@@ -6,7 +6,7 @@ from assets.models import Node, Label
 from common.permissions import AdminUserRequiredMixin
 
 
-class Dc2ListView(AdminUserRequiredMixin, TemplateView):
+class Dc2ListView(TemplateView):
     template_name = 'didicloud/dc2_list.html'
 
     def get_context_data(self, **kwargs):
