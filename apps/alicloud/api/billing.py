@@ -16,7 +16,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 
 from ..tasks import sync_billing_info_manual
-from common.permissions import IsOrgAdmin
+from common.permissions import IsOrgAdmin, IsValidUser
 from common.tree import TreeNodeSerializer
 from ..serializers import *
 from django.db.models import Sum
@@ -43,6 +43,7 @@ class BillingQuery(APIView):
     begin_time = None
     end_time = None
     node = None
+    permission_classes = (IsValidUser,)
 
     def _get_bill_cycles(self):
         if self.begin_time:
@@ -181,12 +182,12 @@ class BillingQueryNode(ListAPIView):
           }
         ]
     """
-    permission_classes = (IsOrgAdmin,)
     serializer_class = TreeNodeSerializer
     node = None
     is_root = False
     begin_time = None
     end_time = None
+    permission_classes = (IsValidUser,)
 
     def get_queryset(self):
         self.begin_time = self.request.query_params.get('begin_time', None)

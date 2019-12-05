@@ -3,10 +3,9 @@ from __future__ import absolute_import, unicode_literals
 from django.views.generic import TemplateView
 from django.utils.translation import ugettext_lazy as _
 from assets.models import Node, Label
-from common.permissions import AdminUserRequiredMixin
 
 
-class EcsListView(AdminUserRequiredMixin, TemplateView):
+class EcsListView(TemplateView):
     template_name = 'alicloud/ecs_list.html'
 
     def get_context_data(self, **kwargs):
