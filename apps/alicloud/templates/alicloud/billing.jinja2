@@ -119,29 +119,43 @@
                         </div>
                         <div id="chart-views">
                             <div class="row">
-                                <div class="col-lg-4">
+                                <div class="col-lg-12">
                                     <h1>
                                         总计花费: ¥&nbsp;<span class="total-money">0</span>
                                     </h1>
-                                    <h3>
-                                        ECS: ¥&nbsp;<span class="ecs-money">0</span>
-                                    </h3>
-                                    <h3>
-                                        SLB: ¥&nbsp;<span class="slb-money">0</span>
-                                    </h3>
-                                    <h3>
-                                        RDS: ¥&nbsp;<span class="rds-money">0</span>
-                                    </h3>
-                                    <h3>
-                                        OSS: ¥&nbsp;<span class="oss-money">0</span>
-                                    </h3>
-                                    <h3>
-                                        KvStore: ¥&nbsp;<span class="kvstore-money">0</span>
-                                    </h3>
-                                </div>
+{#                                    <ul class="total-money-chat">#}
+{#                                        <lo align="left">#}
+{#                                            <h3>#}
+{#                                                ECS: ¥&nbsp;<span class="ecs-money">0</span>#}
+{#                                            </h3>#}
+{#                                        </lo>#}
+{#                                        <lo>#}
+{#                                            <h3>#}
+{#                                                SLB: ¥&nbsp;<span class="slb-money">0</span>#}
+{#                                            </h3>#}
+{#                                        </lo>#}
+{#                                        <lo>#}
+{#                                            <h3>#}
+{#                                                RDS: ¥&nbsp;<span class="rds-money">0</span>#}
+{#                                            </h3>#}
+{#                                        </lo>#}
+{#                                        <lo>#}
+{#                                            <h3>#}
+{#                                                OSS: ¥&nbsp;<span class="oss-money">0</span>#}
+{#                                            </h3>#}
+{#                                        </lo>#}
+{#                                        <lo>#}
+{#                                            <h3>#}
+{#                                                Redis: ¥&nbsp;<span class="redisa-money">0</span>#}
+{#                                            </h3>#}
+{#                                        </lo>#}
+{#                                    </ul>#}
+{#                                    </li>#}
                                 <div class="col-lg-8">
-                                    <div id="money_type_pie" style="height: 500px">左侧点击资产树节点查询费用信息</div>
+                                    <div id="money_type_pie" style="height: 600px">左侧点击资产树节点查询费用信息</div>
                                 </div>
+                                </div>
+
                             </div>
                         </div>
                     </div>
@@ -268,15 +282,25 @@
                 $.each(node_value, function(instance_type, instance_data) {
                     let instance_list = instance_data['instance_list'];
                     if (instance_list !== undefined) {
+                        const tmp_array = []
                         $.each(instance_list, function(instance_id, info) {
-                            let s = template_str.replace('instance_type', instance_type)
-                                .replace('instance_id', instance_id)
-                                .replace('instance_name', info.instance_name)
-                                .replace('money', info.money);
-                            if ( instance_id.indexOf(key_word) !== -1 || info.instance_name.indexOf(key_word) !== -1 ) {
-                                $('#tables_data_body').append(s);
-                            }
+                            tmp_array.push(instance_id+"$"+info.money)
                         })
+                       const sort_array = tmp_array.sort(function(a, b){
+                            return b.split('$')[1] - a.split('$')[1]
+                       })
+                       sort_array.forEach(function(key){
+                            let instance_id = key.split('$')[0]
+                            let info = instance_list[instance_id]
+                            let s = template_str.replace('instance_type', instance_type)
+                                    .replace('instance_id', instance_id)
+                                    .replace('instance_name', info.instance_name)
+                                    .replace('money', info.money);
+                             if ( instance_id.indexOf(key_word) !== -1 || info.instance_name.indexOf(key_word) !== -1 ) {
+                                 $('#tables_data_body').append(s);
+                             }
+                       })
+
                     }
                 })
             })
@@ -289,14 +313,17 @@
             let d = Object.values(org_table_data)[0];
             $('.total-money').html(d.node_money.toFixed(2));
             $.each(d, function(instance_type, instance_data) {
-                if ('ecsossslbkvstorerds'.indexOf(instance_type) >= 0) {
+                if (instance_type=="node_money"){
+                    return true;
+                }
+{#                if ('ecsossslbkvstorerds'.indexOf(instance_type) >= 0) {#}
                     $('.' + instance_type + '-money').html(instance_data.money);
                     legend_data.push(instance_type);
                     series_data.push({
                         name: instance_type,
                         value: instance_data.money
                     });
-                }
+{#                }#}
             });
             let option = {
                 title : {
@@ -333,7 +360,7 @@
             let p1 = echarts.init(document.getElementById('money_type_pie'));
             p1.setOption(option);
         }
-        
+
         {#// 资产树#}
         function onSelected(event, treeNode) {
             current_node = treeNode;
@@ -386,7 +413,7 @@
             rMenu = $("#rMenu");
         }
 
-        
+
 
         {#// 绑定的其他方法#}
         $(document).ready(function () {
@@ -413,9 +440,14 @@
 
             function success_fun(data) {
                 rMenu.css({"visibility": "hidden"});
-                let task_id = data.task;
-                let url = '{% url "ops:celery-task-log" pk=DEFAULT_PK %}'.replace("{{ DEFAULT_PK }}", task_id);
-                window.open(url, '', '');
+                let taskids = data.task;
+                for(index in taskids){
+                    let url = '{% url "ops:celery-task-log" pk=DEFAULT_PK %}'.replace("{{ DEFAULT_PK }}", taskids[index]);
+                    window.open(url, '', '');
+                }
+
+
+
             }
             APIUpdateAttr({
                 url: url,

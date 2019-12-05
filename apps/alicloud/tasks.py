@@ -1,6 +1,8 @@
 # ~*~ coding: utf-8 ~*~
 import json
 import re
+import time
+import arrow
 
 from celery import shared_task
 from django.db import transaction
@@ -8,10 +10,15 @@ from django.db.models import Q
 
 from ops.celery.decorator import register_as_period_task
 from .models import *
-from assets.models import Node, Asset
+from assets.models import Node
+from assets.models import Asset as JAssets
 from .utils import AliCloudUtil
 from common.utils import get_logger, get_object_or_none
 from django.conf import settings
+
+from apps.jumpserver.settings import CACHES
+from redis import Redis
+from aliyunsdkcore.acs_exception.exceptions import ServerException
 
 logger = get_logger(__file__)
 
@@ -21,12 +28,11 @@ logger = get_logger(__file__)
 def sync_ecs_list_info_manual():
     logger.info('ready to sync aly cloud ecs list')
     ali_util = AliCloudUtil()
-    result = ali_util.get_ecs_instances()
     created, updated, failed = [], [], []
     j_created, j_updated, j_failed = [], [], []
     node = Node.root()
     Ecs.objects.all().update(status='Destory')
-    for info in result:
+    for info in ali_util.get_ecs_instances():
         logger.info(json.dumps(info))
         ecs = get_object_or_none(Ecs, instance_id=info.get('instance_id'))
         if not ecs:
@@ -54,49 +60,33 @@ def sync_ecs_list_info_manual():
                 failed.append('%s: %s' % (info['instance_name'], str(e)))
 
         if settings.AUTO_UPDATE_JUMPSERVER_ASSETS:
-            asset = get_object_or_none(Asset, number=info.get('instance_id'))
+            asset = get_object_or_none(JAssets, number=info.get('instance_id'))
             if not asset:
                 try:
                     with transaction.atomic():
                         hostname = info.get('instance_name')
-                        domain = None
-                        admin_user = None
-                        if settings.ENVIROMENT == 'PROD':
-                            if 'ebs' in hostname:
-                                domain = 'ebs'
-                                admin_user = 'ebs-console'
-                            elif 'vip6' in hostname:
-                                domain = 'vip6'
-                                admin_user = 'vip6-console'
-                            elif 'hsb' in hostname:
-                                domain = 'hsb'
-                                admin_user = 'hsb-console'
-                            elif 'vip5' in hostname:
-                                domain = 'vip5'
-                                admin_user = 'vip6-console'
-                            elif 'usa' in hostname:
-                                domain = 'osu'
-                                admin_user = 'usa-console'
-                            else:
-                                domain = None
-                                admin_user = None
+                        admin_user, domain = auto_get_admin_and_domain(hostname)
                         attr = {
-                            'number': 'instance_id',
+                            'number': info.get('instance_id'),
                             'ip': info.get('inner_ip'),
                             'port': 3299,
+                            'protocol': 'ssh',
+                            'protocols': 'ssh/3299',
                             'hostname': hostname,
                             'platform': 'Linux',
-                            'domain': domain,
-                            'admin_user': admin_user
+                            'domain': admin_user,
+                            'admin_user': domain
                         }
-                        asset = Asset.objects.create(**attr)
+                        logger.info('jumpserver asset create info {}'.format(attr))
+                        asset = JAssets.objects.create(**attr)
                         # need to add auto join node
                         asset.nodes.set([node])
                         j_created.append(info['instance_name'])
                 except Exception as e:
                     j_failed.append('%s: %s' % (info['instance_name'], str(e)))
             else:
-                setattr(ecs, 'hostname', info.get('hostname'))
+                setattr(asset, 'hostname', info.get('instance_name'))
+                setattr(asset, 'ip', info.get('inner_ip'))
                 try:
                     asset.save()
                     j_updated.append(info['instance_name'])
@@ -115,19 +105,21 @@ def sync_ecs_list_info_manual():
     }
     logger.info('ecs sync finish')
     logger.info(json.dumps(data))
-    j_data = {
-        'created': j_created,
-        'created_info': 'Created {}'.format(len(j_created)),
-        'updated': j_updated,
-        'updated_info': 'Updated {}'.format(len(j_updated)),
-        'failed': j_failed,
-        'failed_info': 'Failed {}'.format(len(j_failed)),
-        'valid': True,
-        'msg': 'Created: {}. Updated: {}, Error: {}'.format(
-            len(j_created), len(j_updated), len(j_failed))
-    }
-    logger.info('jump server asset update finish')
-    logger.info(json.dumps(j_data))
+    if settings.AUTO_UPDATE_JUMPSERVER_ASSETS:
+        clean_destory_assets_in_jumpserver()
+        j_data = {
+            'created': j_created,
+            'created_info': 'Created {}'.format(len(j_created)),
+            'updated': j_updated,
+            'updated_info': 'Updated {}'.format(len(j_updated)),
+            'failed': j_failed,
+            'failed_info': 'Failed {}'.format(len(j_failed)),
+            'valid': True,
+            'msg': 'Created: {}. Updated: {}, Error: {}'.format(
+                len(j_created), len(j_updated), len(j_failed))
+        }
+        logger.info('jump server asset update finish')
+        logger.info(json.dumps(j_data))
 
     return data
 
@@ -137,11 +129,9 @@ def sync_ecs_list_info_manual():
 def sync_slb_list_info_manual():
     logger.info('ready to sync aly cloud slb list')
     ali_util = AliCloudUtil()
-    result = ali_util.get_slb_instances()
     created, updated, failed = [], [], []
-    node = Node.root()
     Slb.objects.all().update(status='Destory')
-    for info in result:
+    for info in ali_util.get_slb_instances():
         logger.info(json.dumps(info))
         slb = get_object_or_none(Slb, instance_id=info.get('instance_id'))
         if not slb:
@@ -189,11 +179,9 @@ def sync_slb_list_info_manual():
 def sync_rds_list_info_manual():
     logger.info('ready to sync aly cloud rds list')
     ali_util = AliCloudUtil()
-    result = ali_util.get_rds_instances()
     created, updated, failed = [], [], []
-    node = Node.root()
     Rds.objects.all().update(status='Destory')
-    for info in result:
+    for info in ali_util.get_rds_instances():
         logger.info(json.dumps(info))
         rds = get_object_or_none(Rds, instance_id=info.get('instance_id'))
         if not rds:
@@ -241,11 +229,9 @@ def sync_rds_list_info_manual():
 def sync_kvstore_list_info_manual():
     logger.info('ready to sync aly cloud kvstore list')
     ali_util = AliCloudUtil()
-    result = ali_util.get_kvstore_instances()
     created, updated, failed = [], [], []
-    node = Node.root()
     KvStore.objects.all().update(status='Destory')
-    for info in result:
+    for info in ali_util.get_kvstore_instances():
         logger.info(json.dumps(info))
         kvstore = get_object_or_none(KvStore, instance_id=info.get('instance_id'))
         if not kvstore:
@@ -293,11 +279,10 @@ def sync_kvstore_list_info_manual():
 def sync_oss_list_info_manual():
     logger.info('ready to sync aly cloud oss list')
     ali_util = AliCloudUtil()
-    result = ali_util.get_oss_instances()
     created, updated, failed = [], [], []
     node = Node.root()
     Oss.objects.all().update(status='Destory')
-    for info in result:
+    for info in ali_util.get_oss_instances():
         logger.info(json.dumps(info))
         oss = get_object_or_none(Oss, instance_id=info.get('instance_id'))
         if not oss:
@@ -340,6 +325,27 @@ def sync_oss_list_info_manual():
     return data
 
 
+def auto_get_admin_and_domain(name):
+    admin_user, domain = None, None
+    logger.info('try to auto get amdin_user and domain with {}'.format(name))
+    num_list = re.findall(r"\d+", name)
+    if len(num_list):
+        name = name[:name.index(num_list[-1])]
+    logger.info('try to find name {}'.format(name))
+    asset = JAssets.objects.filter(hostname__contains=name).exclude(
+        Q(admin_user=None) | Q(domain=None)).first()
+    if asset:
+        admin_user = asset.admin_user
+        domain = asset.doamin
+        logger.info('auto set {} admin_user:{} domain:{}'.format(name, admin_user, domain))
+    return admin_user, domain
+
+
+def clean_destory_assets_in_jumpserver():
+    destroy_assets = Ecs.objects.values("instance_id").filter(status='Destory')
+    JAssets.objects.filter(number__in=[asset.get('instance_id') for asset in destroy_assets]).delete()
+
+
 def auto_allocate_asset_node(name, asset_type):
     logger.info('auto allocate {} {}'.format(name, asset_type))
     num_list = re.findall(r"\d+", name)
@@ -373,88 +379,89 @@ def auto_allocate_asset_node(name, asset_type):
 
 
 @shared_task
-@register_as_period_task(interval=3600*24)
-def sync_billing_info_manual(begin_time=None, end_time=None):
+@register_as_period_task(interval=3600 * 24)
+def sync_billing_info_manual(bill_cycle=None, page_size=100):
+    # check bill_cycle
+    if not bill_cycle:
+        bill_cycle = arrow.utcnow().replace(days=-1).format('YYYY-MM')
+
     logger.info('ready to sync aly cloud billing list')
-    logger.info(f'同步订单区间为: {begin_time}______{end_time}')
+    logger.info(f'billing sync cycle: {bill_cycle}')
+
+    redis_con = Redis.from_url(CACHES["default"]["LOCATION"])
+    instance_key = f'bill:sync:{bill_cycle}:instances'
+    if redis_con.exists(instance_key):
+        logger.warn(f'billing sync {bill_cycle} task is running, skip')
+        return True
 
     ali_util = AliCloudUtil()
+    page_num = 1
+    total_count = 0
 
-    orders_num = 0  # 订单条数
-    orders_details_num = 0  # 订单详情条数
-    sync_success_orders = []
-    sync_error_orders = {}
-    sync_skip_orders = {}
+    while True:
+        try:
+            bills = ali_util.get_bill_instances(billing_cycle=bill_cycle, page_size=page_size, page_num=page_num)
+        except ServerException:
+            logger.info("flow control, sleep 10s and contine")
+            time.sleep(10)
+            continue
 
-    for orders in ali_util.get_orders_list(begin_time, end_time):
-        logger.info(json.dumps(orders))
-        orders_info = orders["Data"]["OrderList"]["Order"]
-        for i in orders_info:
-            order_summary = i
-            order_id = order_summary['OrderId']
-            if order_summary["PaymentStatus"] != "Paid":
-                info = f"error {order_id}, 订单状态未支付, 跳过"
-                logger.info(info)
-                sync_skip_orders[order_id] = info
+        if bills['Data']['TotalCount'] > 0:
+            for b in bills['Data']['Items']['Item']:
+                key = f'bill::sync::{bill_cycle}::{b["ProductCode"]}::{b["ProductName"]}::{b["InstanceID"]}'
+                redis_con.sadd(instance_key, key)
+                redis_con.incrbyfloat(key, b["PaymentAmount"])
+                total_count += 1
 
-            elif order_summary["PretaxGrossAmount"] == 0.0:
-                info = f"error {order_id}, 交易金额为0, 跳过"
-                logger.info(info)
-                sync_skip_orders[order_id] = info
+                if total_count % 1000 == 0:
+                    time.sleep(10)
 
-            elif order_summary.get("PretaxGrossAmount") is None:
-                info = f"error {order_id}, 错误订单, 没有类型"
-                logger.info(info)
-                sync_skip_orders[order_id] = info
+            if total_count == bills['Data']['TotalCount']:
+                break
+        else:
+            break
+        page_num += 1
 
-            else:
-                try:
-                    details = ali_util.get_orders_details(order_id)
-                    infos = details["Data"]["OrderList"]["Order"]
-                    table_row_num = 0
-                    for d in infos:
-                        instance_ids = json.loads(d['InstanceIDs'])
-                        for f in instance_ids:
-                            f_payment_amount = d['PretaxAmount'] / len(instance_ids)
-                            f_payment_gross_amount = d['PretaxAmount'] / len(instance_ids)
-                            row_data = {
-                                'product_code': d['ProductCode'],
-                                'order_id': d['OrderId'],
-                                'order_id_index': table_row_num,
-                                'payment_status': d['PaymentStatus'],
-                                'payment_time': d['PaymentTime'],
-                                'order_type': d['OrderType'],
-                                'create_time': d['CreateTime'],
-                                'payment_gross_amount': f_payment_gross_amount,
-                                'payment_amount': f_payment_amount,
-                                'instance_ids': f,
-                            }
-                            sd = Billing.objects.filter(order_id=d['OrderId'], order_id_index=table_row_num).count()
-                            if sd > 0:
-                                logger.info(f"重复录入 {d['OrderId']}")
-                                break
+    logger.info(f'sync {bill_cycle} billing total count: {total_count}')
 
-                            Billing.objects.create(**row_data)
-                            table_row_num += 1
-                        orders_details_num += 1
-                    orders_num += 1
-                    sync_success_orders.append(order_id)
-                    logger.info(f"ok {order_id}")
-                except Exception as e:
-                    err = f"error {order_id} => {e}"
-                    sync_error_orders['order_id'] = err
-                    logger.error(err)
+    for k in redis_con.sscan_iter(instance_key):
+        product_code, product_name, instance_id = str(k, encoding="utf-8").strip("'").split('::')[-3:]
+        payment_amount = float(redis_con.get(k))
+        row_data = {
+            'instance_id': instance_id,
+            'cycle': bill_cycle,
+            'product_name': product_name,
+            'product_code': product_code,
+            'defaults': dict(payment_amount=payment_amount)
+        }
+        Billing.objects.update_or_create(**row_data)
+        redis_con.delete(k)
+    redis_con.delete(instance_key)
 
-    data = {
-        'orders_numbers': orders_num,
-        'sync_error_orders': sync_error_orders,
-        'sync_skip_orders': sync_skip_orders,
-        'sync_success_orders': sync_success_orders
-    }
-    logger.info(data)
-    logger.info('sync finish')
-    if len(sync_error_orders) != 0:
-        return False, data
-    return True, data
+    logger.info(f'sync {bill_cycle} billing domian from overview start . ')
 
+    for pi in ali_util.get_bill_overview(billing_cycle=bill_cycle)['Data']['Items']['Item']:
+        if pi["ProductName"] == "域名":
+            row_data = {
+                'instance_id': bill_cycle + pi["ProductType"],
+                'cycle': bill_cycle,
+                'product_name': pi["ProductName"],
+                'product_code': pi["ProductCode"],
+                'defaults': dict(payment_amount=pi["PaymentAmount"])
+            }
+            Billing.objects.update_or_create(**row_data)
 
+        if pi["ProductName"] == "云虚拟主机":
+            row_data = {
+                'instance_id': bill_cycle + "-hosting",
+                'cycle': bill_cycle,
+                'product_name': pi["ProductName"],
+                'product_code': "hosting",
+                'defaults': dict(payment_amount=pi["PaymentAmount"])
+            }
+            Billing.objects.update_or_create(**row_data)
+
+    logger.info(f'sync {bill_cycle} billing domian from overview end . ')
+
+    logger.info(f'sync {bill_cycle} billing success .')
+    return True

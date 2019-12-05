@@ -13,3 +13,4 @@ class Asset(models.Model):
 
     class Meta:
         db_table = 'alicloud_assets'
+        managed = False

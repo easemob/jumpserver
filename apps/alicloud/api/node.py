@@ -4,7 +4,7 @@ from django.db.models import Q
 from rest_framework import generics
 
 from assets.models import Node
-from common.permissions import IsOrgAdmin
+from common.permissions import IsOrgAdmin, IsValidUser, PermissionsMixin
 from common.tree import TreeNodeSerializer
 from ..models import *
 from ..serializers import *
@@ -23,7 +23,7 @@ class NodeChildrenAsTreeApi(generics.ListAPIView):
     ]
 
     """
-    permission_classes = (IsOrgAdmin,)
+    permission_classes = (IsValidUser,)
     serializer_class = TreeNodeSerializer
     node = None
     is_root = False

@@ -12,16 +12,13 @@ from django.utils.translation import ugettext_lazy as _
 
 
 class Billing(models.Model):
-    order_id = models.BigIntegerField(null=False, verbose_name=_('OrderId'))
-    order_id_index = models.BigIntegerField(default=0, verbose_name=_('OrderIdIndex'))
-    product_code = models.CharField(max_length=20, null=False, verbose_name=_('ProductCode'))
-    payment_status = models.CharField(max_length=20, null=False, verbose_name=_('PaymentStatus'))
-    order_type = models.CharField(max_length=20, null=False, verbose_name=_('OrderType'))
-    payment_time = models.DateTimeField(verbose_name=_('PaymentTime'))
-    create_time = models.DateTimeField(verbose_name=_('CreateTime'))
+    id = models.AutoField(primary_key=True)
+    instance_id = models.CharField(max_length=128, default="", verbose_name=_('InstanceId'))
+    cycle = models.CharField(max_length=50, null=False, default="", verbose_name=('BillingCycle'))
     payment_amount = models.FloatField(null=False, default=0.0, verbose_name=_('PaymentAmount'))
-    payment_gross_amount = models.FloatField(null=False, default=0.0, verbose_name=_('PaymentGrossAmount'))
-    instance_ids = models.TextField(verbose_name=_('InstanceIDs'))
+    product_code = models.CharField(max_length=20, null=False, default="",  verbose_name=_('ProductCode'))
+    product_name = models.CharField(max_length=200, null=False, default="", verbose_name=_('ProductName'))
 
     class Meta:
-        unique_together = ("order_id", "order_id_index")
+        unique_together = ("cycle", "product_code", "instance_id")
+        db_table = 'alicloud_billing'

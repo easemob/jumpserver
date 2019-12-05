@@ -7,7 +7,7 @@ from rest_framework.viewsets import ReadOnlyModelViewSet
 
 from alicloud import serializers
 from assets.models import Node
-from common.permissions import IsOrgAdmin, IsOrgAdminOrAppUser
+from common.permissions import IsOrgAdmin, IsOrgAdminOrAppUser, IsValidUser
 from rest_framework.response import Response
 
 from common.utils import get_object_or_none
@@ -30,7 +30,7 @@ class AliCloudEcsViewSet(ReadOnlyModelViewSet):
     queryset = Ecs.objects.all()
     serializer_class = serializers.EcsSerializer
     pagination_class = LimitOffsetPagination
-    permission_classes = (IsOrgAdminOrAppUser,)
+    permission_classes = (IsValidUser,)
 
     def set_assets_node(self, assets):
         if not isinstance(assets, list):
