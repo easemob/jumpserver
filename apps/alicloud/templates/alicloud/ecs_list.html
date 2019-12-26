@@ -4,7 +4,7 @@
 
 {% block custom_head_css_js %}
     <link href="{% static 'css/plugins/ztree/awesomeStyle/awesome.css' %}" rel="stylesheet">
-{#    <link href="https://cdn.datatables.net/1.10.19/css/jquery.dataTables.min.css" rel="stylesheet">#}
+    <script type="text/javascript" src="{% static 'js/pwstrength-bootstrap.js' %}"></script>
     <script type="text/javascript" src="{% static 'js/plugins/ztree/jquery.ztree.all.min.js' %}"></script>
     <script src="{% static 'js/jquery.form.min.js' %}"></script>
 	<style type="text/css">
@@ -54,6 +54,7 @@
                <div class="uc pull-left m-r-5">
                    <a class="btn btn-sm btn-primary btn-sync-asset"> {% trans "Sync asset" %} </a>
                    <a class="btn btn-sm btn-primary btn-unallocated-asset"> {% trans "Unallocated asset" %} </a>
+                   <a class="btn btn-sm btn-primary btn-create-asset" data-toggle="modal" data-target="#asset_create_modal"> {% trans "Create asset" %} </a>
                </div>
                <div class="" style="float: right">
                    <div class=" btn-group">
@@ -100,6 +101,7 @@
    </div>
 </div>
 {% include 'alicloud/_ecs_list_modal.html' %}
+{% include 'alicloud/_ecs_create_modal.html' %}
 {% endblock %}
 
 {% block custom_foot_js %}
@@ -216,6 +218,24 @@ function toggle() {
     }
 }
 
+function safe_boolean(value) {
+    var value_type = typeof (value)
+    if (value_type == 'string') {
+      value = value.toLowerCase()
+      if (value === 'true') {
+        return true
+      }
+      if (value === 'false') {
+        return false
+      }
+    }
+
+    if (value_type == 'boolean') {
+      return value
+    }
+    return null
+}
+
 $(document).ready(function(){
     initTable();
     initTree();
@@ -326,6 +346,33 @@ $(document).ready(function(){
             break;
     }
     $(".ipt_check_all").prop("checked", false)
+})
+.on('click', '#btn_ecs_create_confirm', function () {
+      var form = $("form");
+      var formData = form.serializeObject();
+      var $button = $(this)
+      formData.auto_renew = safe_boolean(formData.auto_renew)
+      console.log(formData)
+      function doSuccess(data, textState, jqXHR) {
+          toastr.success("创建成功:"+JSON.stringify(data));
+          setTimeout(function(){
+            location.href =  '{% url "alicloud:alicloud-ecs-list" %}'
+          }, 1000)
+      }
+      function doFail(data, textState, jqXH) {
+        $button.button('reset')
+        toastr.error("创建失败:"+data.responseText)
+      }
+      var props = {
+        url: '{% url "api-alicloud:ecs-list" %}',
+        data: formData,
+        method: 'POST',
+        form: form,
+        error: doFail,
+        success: doSuccess
+      }
+      $button.button('loading')
+      formSubmit(props);
 })
 .on('click', '#btn_asset_modal_confirm', function () {
     console.log('modal_confirm', current_node_id);

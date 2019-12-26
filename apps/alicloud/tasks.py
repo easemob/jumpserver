@@ -8,6 +8,7 @@ from celery import shared_task
 from django.db import transaction
 from django.db.models import Q
 
+# from alicloud.ali_utils import EcsClient
 from ops.celery.decorator import register_as_period_task
 from .models import *
 from assets.models import Node
@@ -19,6 +20,7 @@ from django.conf import settings
 from apps.jumpserver.settings import CACHES
 from redis import Redis
 from aliyunsdkcore.acs_exception.exceptions import ServerException
+from common.tasks import send_mail_async
 
 logger = get_logger(__file__)
 
@@ -74,8 +76,8 @@ def sync_ecs_list_info_manual():
                             'protocols': 'ssh/3299',
                             'hostname': hostname,
                             'platform': 'Linux',
-                            'domain': admin_user,
-                            'admin_user': domain
+                            'domain': domain,
+                            'admin_user': admin_user
                         }
                         logger.info('jumpserver asset create info {}'.format(attr))
                         asset = JAssets.objects.create(**attr)
@@ -122,6 +124,59 @@ def sync_ecs_list_info_manual():
         logger.info(json.dumps(j_data))
 
     return data
+
+
+# @shared_task
+# def create_alicloud_ecs(data, username, email):
+#     ecs_client = EcsClient()
+#     succeed, result = ecs_client.create_and_run_instance(**data)
+#     subject = '创建ECS结果'
+#     message = ''
+#     if succeed:
+#         message = f'<p style="color:green">创建成功, 实例id为:{result}</p>'
+#         template_id = data.pop('template')
+#         record = EcsCreateRecord.objects.create(result_ids=result, uid=username, **data)
+#         template = get_object_or_none(EcsTemplate, id=template_id)
+#         record.template = template
+#         record.save()
+#         create_ecs_info_from_alicoud(template, json.loads(result))
+#     else:
+#         message = f'<p style="color:red">创建失败, 错误信息为:{result}</p>'
+#     send_mail_async.delay(subject, message, [email], html_message=message)
+
+
+@shared_task
+def create_ecs_info_from_alicoud(template, id_list):
+    # wait alicloud update api return
+    time.sleep(10)
+    ali_util = AliCloudUtil()
+    for info in ali_util.get_ecs_instances(instanceIds=id_list):
+        logger.info(json.dumps(info))
+        try:
+            with transaction.atomic():
+                ecs = Ecs.objects.create(**info)
+                ecs.nodes.set(template.nodes.all())
+                ecs.save()
+                logger.info('ali ecs create info {}'.format(info))
+                if settings.AUTO_UPDATE_JUMPSERVER_ASSETS:
+                    attr = {
+                        'number': info.get('instance_id'),
+                        'ip': info.get('inner_ip'),
+                        'port': 3299,
+                        'protocol': 'ssh',
+                        'protocols': 'ssh/3299',
+                        'hostname': info.get('instance_name'),
+                        'platform': 'Linux',
+                        'domain': template.domain,
+                        'admin_user': template.admin_user
+                    }
+                    logger.info('jumpserver asset create info {}'.format(attr))
+                    asset = JAssets.objects.create(**attr)
+                    print(template.nodes)
+                    asset.nodes.set(template.nodes.all())
+                    asset.save()
+        except Exception as e:
+            logger.error('%s: %s' % (info['instance_name'], str(e)))
 
 
 @shared_task

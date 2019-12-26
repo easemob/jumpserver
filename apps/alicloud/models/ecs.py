@@ -16,6 +16,19 @@ def default_node():
         return None
 
 
+class EcsCreateRecord(OrgModelMixin):
+    id = models.UUIDField(default=uuid.uuid4, primary_key=True)
+    template = models.ForeignKey("alicloud.EcsTemplate", null=True, blank=True, verbose_name=_("Template"),
+                                 on_delete=models.SET_NULL)
+    instance_name = models.CharField(max_length=256)
+    amount = models.IntegerField()
+    suffix_number = models.CharField(max_length=256)
+    auto_renew = models.BooleanField()
+    uid = models.CharField(max_length=256)
+    result_ids = models.TextField()
+    date_created = models.DateTimeField(auto_now_add=True, null=True, blank=True, verbose_name=_('Date created'))
+
+
 class Ecs(OrgModelMixin):
     id = models.UUIDField(default=uuid.uuid4, primary_key=True)
     type = models.CharField(default='ecs', max_length=128, verbose_name=_('AssetType'))
@@ -34,7 +47,6 @@ class Ecs(OrgModelMixin):
     instance_charge_type = models.CharField(max_length=128, verbose_name=_('InstanceChargeType'))
     instance_type = models.CharField(max_length=128, verbose_name=_('InstanceType'))
     nodes = models.ManyToManyField('assets.Node', default=default_node, related_name='ecs', verbose_name=_("Nodes"))
-
 
     @property
     def instance_info(self):
@@ -81,6 +93,3 @@ class Ecs(OrgModelMixin):
         }
         tree_node = TreeNode(**data)
         return tree_node
-
-
-

@@ -1,0 +1,20 @@
+{% load static %}
+{% load i18n %}
+<div class="panel-options">
+    <ul class="nav nav-tabs">
+        <li class="active">
+            <a href="{% url 'alicloud:alicloud-template-ecs-list' %}" class="text-center"><i
+                    class="fa fa-server"></i> {% trans 'Ecs Template' %}
+            </a>
+        </li>
+        <li>
+            <a href="{% url 'alicloud:alicloud-template-slb-list' %}" class="text-center"><i
+                    class="fa fa-cubes"></i> {% trans 'Slb Tempalte' %} </a>
+        </li>
+    </ul>
+</div>
+
+
+<script>
+
+</script>

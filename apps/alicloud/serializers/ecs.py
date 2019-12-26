@@ -4,10 +4,10 @@ from rest_framework import serializers
 
 from django.utils.translation import ugettext_lazy as _
 
-from ..models import Ecs
+from ..models import Ecs, EcsTemplate
 
 __all__ = [
-    'EcsSerializer'
+    'EcsSerializer', 'EcsTemplateSerializer',
 ]
 
 
@@ -19,6 +19,16 @@ class EcsSerializer(serializers.ModelSerializer):
         model = Ecs
         fields = '__all__'
 
+
+
+
+class EcsTemplateSerializer(serializers.ModelSerializer):
+    """
+    ecs模板的数据结构
+    """
+    class Meta:
+        model = EcsTemplate
+        fields = '__all__'
 
 
 # class AssetAsNodeSerializer(serializers.ModelSerializer):

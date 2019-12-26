@@ -1,6 +1,6 @@
 aliyun-python-sdk-bssopenapi==1.2.8
 aliyun-python-sdk-core-v3==2.13.3
-aliyun-python-sdk-ecs==4.10.1
+aliyun-python-sdk-ecs==4.17.8
 aliyun-python-sdk-r-kvstore==2.1.1
 aliyun-python-sdk-rds==2.3.9
 aliyun-python-sdk-slb==3.2.10
