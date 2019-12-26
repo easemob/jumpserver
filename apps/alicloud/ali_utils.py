@@ -14,14 +14,15 @@ from aliyunsdkecs.request.v20140526.RunInstancesRequest import RunInstancesReque
 from alicloud.models import EcsTemplate
 from alicloud.tasks import create_ecs_info_from_alicoud
 from common.utils import get_object_or_none, get_logger
+from django.conf import settings
 
 logger = get_logger(__file__)
 
 
 class AliClient:
     _all_clients = {}
-    _AccessKeyId = 'LTAI4Fna89Umz2Mmr6S5oKNB'
-    _AccessKeySecret = 'OpezV2Ui2C26HkOLTIjmNuaEjkIRAB'
+    _AccessKeyId = settings.ALY_ACCESS_KEY
+    _AccessKeySecret = settings.ALY_ACCESS_SECRET
 
     @staticmethod
     def get_client_by_region(region):
