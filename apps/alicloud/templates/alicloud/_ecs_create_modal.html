@@ -133,7 +133,7 @@
           success: function (data) {
             template_info_list = data.results
             if (template_info_list.length > 0) {
-              $('#instance_name').val(template_info_list[0].name)
+              $('#instance_name').val(template_info_list[0].instance_name)
             }
             fill_template_content()
           }
@@ -142,7 +142,7 @@
         var template_id = $(this).val()
         template_info_list.forEach(function (info) {
           if (info.id == template_id) {
-            $('#instance_name').val(info.name)
+            $('#instance_name').val(info.instance_name)
             return
           }
         })
