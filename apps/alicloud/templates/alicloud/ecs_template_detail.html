@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block custom_head_css_js %}
+{% endblock %}
+
+{% block content %}
+    <div class="wrapper wrapper-content animated fadeInRight">
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="tab-content">
+                    <div class="col-sm-9" style="padding-left: 0">
+                        <div class="ibox float-e-margins">
+                            <div class="ibox-title">
+                                <span class="label"><b>{{ ecs_template.name }}</b></span>
+                                <div class="ibox-tools">
+                                    <a class="collapse-link">
+                                        <i class="fa fa-chevron-up"></i>
+                                    </a>
+                                    <a class="dropdown-toggle" data-toggle="dropdown" href="#">
+                                        <i class="fa fa-wrench"></i>
+                                    </a>
+                                    <ul class="dropdown-menu dropdown-user">
+                                    </ul>
+                                    <a class="close-link">
+                                        <i class="fa fa-times"></i>
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="ibox-content">
+                                <table class="table">
+                                    <tbody>
+                                    <tr class="no-borders-tr">
+                                        <td width="25%">{% trans 'Template Name' %}:</td>
+                                        <td><b>{{ ecs_template.name }}</b></td>
+                                    </tr>
+                                    <tr>
+                                        <td>{% trans 'Region' %}:</td>
+                                        <td><b>{{ ecs_template.region }}</b></td>
+                                    </tr>
+                                    <tr>
+                                        <td>{% trans 'Zone' %}:</td>
+                                        <td><b>{{ ecs_template.zone }}</b></td>
+                                    </tr>
+                                    <tr>
+                                        <td>{% trans 'Image' %}:</td>
+                                        <td><b>{{ ecs_template.image }}</b></td>
+                                    </tr>
+                                    <tr>
+                                        <td>{% trans 'Instance Type' %}:</td>
+                                        <td>
+                                            <b>{{ ecs_template.instance_type }}({{ ecs_template.cores }}C{{ ecs_template.memory }}G)</b>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>{% trans 'System Disk' %}:</td>
+                                        <td>
+                                            <b>{{ ecs_template.system_disk_size }}({{ ecs_template.system_disk_category }})</b>
+                                        </td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>{% trans 'Data Disk' %}:</td>
+                                        <td>
+                                            <b>{{ ecs_template.data_disk_info }}</b>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>{% trans 'Security group' %}:</td>
+                                        <td><b>{{ ecs_template.sg }}</b></td>
+                                    </tr>
+                                    <tr>
+                                        <td>{% trans 'Network Type' %}:</td>
+                                        <td><b>{{ ecs_template.network_type }}</b></td>
+                                    </tr>
+                                    {% if ecs_template.network_type == 'vpc' %}
+                                        <tr>
+                                            <td>{% trans 'Vpc' %}:</td>
+                                            <td><b>{{ ecs_template.vpc }}</b></td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>{% trans 'VSwitch' %}:</td>
+                                            <td><b>{{ ecs_template.vswitch }}</b></td>
+                                        </tr>
+                                    {% endif %}
+
+                                    <tr>
+                                        <td>{% trans 'Has Public IP' %}:</td>
+                                        <td><b>{{ ecs_template.has_public_ip }}</b></td>
+                                    </tr>
+
+                                    {% if ecs_template.has_public_ip %}
+                                        <tr>
+                                            <td>{% trans 'Bandwidth' %}:</td>
+                                            <td><b>{{ ecs_template.internet_bandwidth }}</b></td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>{% trans 'Internet Charge Type' %}:</td>
+                                            <td><b>{{ ecs_template.internet_charge_type }}</b></td>
+                                        </tr>
+                                    {% endif %}
+
+                                    <tr>
+                                        <td>{% trans 'Node' %}:</td>
+                                        <td>
+                                            {% for node in ecs_template.nodes.all %}
+                                                <b>{{ node.name }}</b>
+                                            {% endfor %}
+                                        </td>
+                                    </tr>
+
+
+                                    <tr>
+                                        <td>{% trans 'Admin user' %}:</td>
+                                        <td><b>{{ ecs_template.admin_user }}</b></td>
+                                    </tr>
+                                    <tr>
+                                        <td>{% trans 'Domain' %}:</td>
+                                        <td><b>{{ ecs_template.domain|default:"" }}</b></td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>{% trans 'Date joined' %}:</td>
+                                        <td><b>{{ ecs_template.date_created|date:"Y-m-j H:i:s" }}</b></td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+    </div>
+{% endblock %}
+{% block custom_foot_js %}
+    <script>
+      $(document).ready(function () {
+      })
+    </script>
+{% endblock %}

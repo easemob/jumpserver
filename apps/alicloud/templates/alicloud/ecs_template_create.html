@@ -1,0 +1,706 @@
+{% extends '_base_create_update.html' %}
+{% load static %}
+{% load bootstrap3 %}
+{% load i18n %}
+{% load asset_tags %}
+{% load common_tags %}
+{% block custom_head_css_js_create %}
+    <style type="text/css">
+        .no-left-padding {
+            padding-left: 0px;
+        }
+    </style>
+{% endblock %}
+{% block form %}
+    <form action="" method="post" class="form-horizontal">
+        {% csrf_token %}
+        <h3>{% trans 'Region' %}</h3>
+
+        <div class="form-group">
+            <div class="col-md-3 col-md-offset-2">
+                {#                <label class="control-label col-md-3" for="region">Region</label>#}
+                <div>
+                    <select class="form-control" name="region" id="region">
+                        {% for info in region_list %}
+                            <option value="{{ info.RegionId }}">{{ info.LocalName }}({{ info.RegionId }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="col-md-3 col-md-offset-2">
+                {#                <label class="control-label col-md-3" for="region">Region</label>#}
+                <div>
+                    <select class="form-control" name="zone" id="zone">
+
+                    </select>
+                </div>
+            </div>
+
+        </div>
+        <div class="hr-line-dashed"></div>
+        <h3>{% trans 'INSTANCE TYPE' %}</h3>
+        <div class="form-group itype">
+            <div class="col-md-2 col-md-offset-2">
+                {#                <label class="control-label col-md-3" for="region">Region</label>#}
+                <div>
+                    <select class="form-control resouce-condition" name="cores" id="cores">
+                        <option value="" disabled selected>选择vCpu</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="col-md-2">
+                <div>
+                    <select class="form-control resouce-condition" name="memory" id="memory">
+                        <option value="" disabled selected>选择内存</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="col-md-2">
+                <div>
+                    <select class="form-control resouce-condition" name="network_type" id="network_type">
+                        <option value="classic"> 经典网络</option>
+                        <option value="vpc" selected> vpc</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div>
+                    <select class="form-control" name="instance_type" required id="instance_type">
+                        <option value="" disabled selected>选择型号</option>
+                    </select>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="hr-line-dashed"></div>
+        <h3>{% trans 'IMAGE' %}</h3>
+        <div class="form-group required">
+            <label for="image" class="col-md-2 control-label">自定义镜像</label>
+            <div class="col-md-9">
+                <select class="form-control select2" data-placeholder="选择镜像" name="image" id="image">
+                </select>
+            </div>
+        </div>
+
+        <div class="hr-line-dashed"></div>
+        <h3>{% trans 'System Disk' %}</h3>
+        <div class="form-group required">
+            <label for="system_disk" class="control-label col-md-2">系统盘</label>
+            <div class="col-md-9">
+                <div class="col-md-4 no-left-padding">
+                    <select name="system_disk_category" class="form-control disk-category" id="system_category">
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <div class="input-group no-left-padding">
+                        <input class="form-control" name="system_disk_size" type="number" min="20" step="10" max="500"
+                               value="40" aria-describedby="system-disk-size-unit"/>
+                        <span class="input-group-addon" id="system-disk-size-unit">GB</span>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+
+        <div class="hr-line-dashed"></div>
+        <h3>{% trans 'DATA DISK' %}</h3>
+
+
+        <div class="data-disks">
+            <div class="form-group">
+                <label for="data_disk_category" class="control-label col-md-2">添加数据盘</label>
+                <div class="col-md-9">
+                    <div class="col-md-4 no-left-padding">
+                        <select name="data_disk_category" class="form-control disk-category" id="data_disk_category">
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="input-group">
+                            <input class="form-control" name="data_disk_size" type="number" min="20" step="10"
+                                   max="32768"
+                                   value="100" aria-describedby="disk-size-unit"/>
+                            <span class="input-group-addon" id="disk-size-unit">GB</span>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="col-md-4 control-label" for="id_data_disk_count">数量</label>
+                        <div class="input-group">
+                            <input id="data_disk_count" name="data_disk_count" class="form-control" type="number"
+                                   min="0"
+                                   step="1" max="16" aria-describedby="data-disk-count-unit"
+                                   value="0"/>
+                            <span class="input-group-addon" id="data-disk-count-unit">块</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="hr-line-dashed"></div>
+        <h3>{% trans 'Network' %}</h3>
+        <div class="form-group vpc-options">
+            <label for="system_disk" class="control-label col-md-2">vpc选项</label>
+            <div class="col-md-9">
+                <div class="col-md-4 no-left-padding">
+                    <select name="vpc" class="form-control select2" data-placeholder="选择私有网络" id="vpc_id">
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <select name="vswitch" class="form-control select2" data-placeholder="选择交换机" id="vswitch_id">
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="" class="control-label col-md-2">公网选项</label>
+
+            <div class="col-md-9">
+                <div class="col-md-4">
+                    <label class="checkbox-inline">
+                        <input type="checkbox" id="public_ip" name="has_public_ip" value="true"> 分配公网地址
+                    </label>
+                </div>
+                <div class="col-md-4 public-ip-options">
+                    <select name="internet_charge_type" class="form-control" data-placeholder="选择付费类型" id="vpc_id">
+                        <option value="PayByTraffic">按量付费</option>
+                        <option value="PayByBandwidth">固定带宽</option>
+                    </select>
+                </div>
+                <div class="col-md-4 public-ip-options">
+                    <div class="input-group">
+                        <input id="bandwidth" class="form-control" name="internet_bandwidth" type="number" min="1"
+                               step="1" max="100" aria-describedby="bandwidth-unit"
+                               value="1"/>
+                        <span class="input-group-addon" id="bandwidth-unit">Mbps</span>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="hr-line-dashed"></div>
+        <h3>{% trans 'Security Group' %}</h3>
+        <div class="form-group required">
+            <label for="sg" class="col-md-2 control-label">安全组</label>
+            <div class="col-md-9">
+                <select class="form-control select2" required data-placeholder="选择安全组" name="sg" id="sg">
+                </select>
+            </div>
+        </div>
+
+
+        <div class="hr-line-dashed"></div>
+        <h3>{% trans 'Name Setting' %}</h3>
+
+        <div class="form-group required">
+            <label for="instance_name" class="col-md-2 control-label">模板名称</label>
+            <div class="col-md-9">
+                <input type="text" class="form-control" name="name" id="name"/>
+            </div>
+        </div>
+
+        <div class="form-group required">
+            <label for="instance_name" class="col-md-2 control-label">实例名称</label>
+            <div class="col-md-9">
+                <input type="text" class="form-control" name="instance_name" id="instance_name"/>
+            </div>
+        </div>
+
+        <div class="hr-line-dashed"></div>
+        <h3>{% trans 'Password Setting' %}</h3>
+
+        <div class="form-group required">
+            <label for="password_inherit" class="col-md-2 control-label">密码类型</label>
+            <div class="col-md-9">
+                <select name="password_inherit" class="form-control" id="password_inherit">
+                    <option value="true">使用镜像密码</option>
+                    <option value="false">自定义密码</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="password-input" style="display: none">
+            <div class="form-group required">
+                <label for="instance_name" class="col-md-2 control-label">root密码</label>
+                <div class="col-md-9">
+                    <input type="password" class="form-control" name="password" id="password"/>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-9 col-md-offset-2">
+                    <span class="help-block" id="password_check_fail" style="color:red; display: none;">两次密码不一致</span>
+                </div>
+            </div>
+            <div class="form-group required">
+                <label for="password_repeat" class="col-md-2 control-label">确认密码</label>
+                <div class="col-md-9">
+                    <input type="password" name="password_repeat" class="form-control" id="password_repeat"/>
+                </div>
+            </div>
+        </div>
+
+        <div class="hr-line-dashed"></div>
+        <h3>{% trans 'Jumpserver' %}</h3>
+
+        {% bootstrap_field form.admin_user layout="horizontal" %}
+        {% bootstrap_field form.nodes layout="horizontal" %}
+        {% bootstrap_field form.domain layout="horizontal" %}
+        {% block extra %}
+        {% endblock %}
+
+        <div class="hr-line-dashed"></div>
+        <div class="form-group">
+            <div class="col-sm-4 col-sm-offset-2">
+                <button class="btn btn-default" type="reset"> {% trans 'Reset' %}</button>
+                <button id="submit_button" class="btn btn-primary" type="submit">{% trans 'Submit' %}</button>
+            </div>
+        </div>
+    </form>
+
+
+    <div class="form-group" id="image-data-disk-template">
+        <label for="" class="col-md-2 control-label">镜像中磁盘</label>
+        <div class="col-md-9">
+            <div class="col-md-4 no-left-padding">
+                <select name="data_disk_category" class="form-control disk-category" data-snapshot-id="">
+                </select>
+            </div>
+            <div class="col-md-4">
+                <div class="input-group">
+                    <input class="form-control disk-size" id="data_disk_size" name="data_disk_size" readonly
+                           type="number" min="20"
+                           step="10" max="32768"
+                           aria-describedby="disk-size-unit"/>
+                    <span class="input-group-addon" id="disk-size-unit">GB</span>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block custom_foot_js %}
+    <script>
+
+      var diskCategories = []
+      var instanceTypes = []
+      var region, zone = ''
+      var all_disk_info = {
+        'cloud': '普通云盘',
+        'cloud_efficiency': '高效云盘',
+        'cloud_ssd': 'ssd',
+        'cloud_essd': 'essd',
+      }
+      var current_zones_list = []
+      var current_images_list = []
+
+      var image_disk_counter = 0
+
+      function getZonesByRegion() {
+        $.ajax({
+          url: '{% url "api-alicloud:gateway-zones" region='REGIONTMP' %}'.replace('REGIONTMP', region),
+          type: 'GET',
+          contentType: "application/json",
+          success: function (data) {
+            current_zones_list = data
+            var $zone = $('#zone')
+            $zone.empty()
+            var html = ''
+            zone = data[0]['ZoneId']
+            init_disk_category()
+            query_instance_type_by_resource()
+            data.forEach(function (info) {
+              html += '<option value="ZONE_ID">LOCAL_NAME</option>'.replace('ZONE_ID', info.ZoneId).replace('LOCAL_NAME', info.LocalName)
+            })
+            $zone.append(html)
+          }
+        })
+      }
+
+      function init_cpu_memory_option() {
+        var cores = [1, 2, 4, 8, 16, 32, 64]
+        var memory = [1, 2, 4, 8, 16, 32, 64, 128]
+
+        var cores_options_html, memory_options_html = ''
+
+        cores.forEach(function (num) {
+          cores_options_html += '<option value="NUMBER"> NUMBER </option>'.replaceAll("NUMBER", num)
+        })
+
+        memory.forEach(function (num) {
+          memory_options_html += '<option value="NUMBER"> NUMBER </option>'.replaceAll("NUMBER", num)
+        })
+
+        $('#cores').append(cores_options_html)
+        $('#memory').append(memory_options_html)
+      }
+
+      function init_disk_category() {
+
+        var current_zones_disk_categories = []
+        current_zones_list.forEach(function (info) {
+          console.log(info)
+          if (info.ZoneId == zone) {
+            current_zones_disk_categories = info.DiskCategories
+          }
+        })
+
+        var $diskCategory = $('.disk-category')
+        $diskCategory.empty()
+        console.log(current_zones_disk_categories, 'absdf')
+        html = ''
+        current_zones_disk_categories.forEach(function (info) {
+          html += '<option value="DISK_TYPE"> DISK_NAME </option>'.replaceAll('DISK_TYPE', info).replaceAll('DISK_NAME', all_disk_info[info])
+
+        })
+        console.log(html)
+        console.log($diskCategory)
+        $diskCategory.append(html)
+      }
+
+      function query_instance_type_by_resource() {
+        var is_ready = true
+        $('.itype .resouce-condition').each(function () {
+          console.log($(this).val())
+          if (!$(this).val()) {
+            is_ready = false
+          }
+        })
+        if (!is_ready) {
+          return
+        }
+        var $instance_type = $('#instance_type')
+        $instance_type.empty()
+        $instance_type.append('<option value="" disabled selected>选择型号</option>')
+        var query_data = {}
+        $(".itype select").each(function () {
+          if ($(this).val()) {
+            query_data[$(this).attr('name')] = $(this).val()
+          }
+        })
+        $.ajax({
+          url: '{% url "api-alicloud:gateway-instance-type" region='REGIONTMP' zone='ZONETMP' %}'.replace('REGIONTMP', region).replace('ZONETMP', zone),
+          type: 'GET',
+          data: query_data,
+          contentType: "application/json",
+          success: function (data) {
+            var html = ''
+            data.forEach(function (info) {
+              console.log(info.InstanceType)
+              html += '<option value="INSTANCE_TYPE">INSTANCE_TYPE</option>'.replaceAll('INSTANCE_TYPE', info.InstanceType.InstanceType)
+            })
+            $('#instance_type').append(html)
+          },
+          error: function (data) {
+            toastr.error('未找到匹配机型')
+          }
+        })
+        console.log(query_data)
+      }
+
+      function get_vpc_by_region() {
+        $('#vpc_id').empty()
+        $.ajax({
+          url: '{% url "api-alicloud:gateway-vpcs" region='REGIONTMP' %}'.replace('REGIONTMP', region),
+          type: 'GET',
+          contentType: "application/json",
+          success: function (data) {
+            var html = ''
+            data.forEach(function (info) {
+              html += '<option value=VPC_ID>VPC_NAME</option>'.replaceAll('VPC_ID', info.VpcId).replaceAll('VPC_NAME', info.VpcName)
+            })
+            $('#vpc_id').append(html)
+            get_vswitch_by_vpc()
+            get_security_group()
+          },
+          error: function (data) {
+            toastr.error(data)
+          }
+        })
+      }
+
+      function get_vswitch_by_vpc() {
+        var vpcId = $('#vpc_id').val()
+        $('#vswitch_id').empty()
+        $.ajax({
+          url: '{% url "api-alicloud:gateway-vswitches" region='REGIONTMP' vpc='VPC'%}'.replace('REGIONTMP', region).replace('VPC', vpcId),
+          type: 'GET',
+          contentType: "application/json",
+          success: function (data) {
+            var html = ''
+            data.forEach(function (info) {
+              html += '<option value=VSWITCH_ID>VSWITCH_NAME</option>'.replaceAll('VSWITCH_ID', info.VSwitchId).replaceAll('VSWITCH_NAME', info.VSwitchName)
+            })
+            $('#vswitch_id').append(html)
+          },
+          error: function (data) {
+            toastr.error(data)
+          }
+        })
+      }
+
+      function get_security_group() {
+        $('#sg').empty()
+        var networkType = $('#network_type').val()
+        var vpcId = $('#vpc_id').val()
+        if (networkType == 'vpc' && !vpcId) {
+          return
+        }
+        var data = {
+          networkType: networkType,
+          vpcId: vpcId
+        }
+        $.ajax({
+          url: '{% url "api-alicloud:gateway-sg" region='REGIONTMP'%}'.replace('REGIONTMP', region),
+          type: 'GET',
+          data: data,
+          contentType: "application/json",
+          success: function (data) {
+            var html = ''
+            data.forEach(function (info) {
+              html += '<option value=SG_ID>SG_NAME[SG_ID](ecsCount: ECS_COUNT)</option>'
+                .replaceAll('SG_ID', info.SecurityGroupId)
+                .replaceAll('SG_NAME', info.SecurityGroupName)
+                .replaceAll('ECS_COUNT', info.EcsCount)
+            })
+            $('#sg').append(html)
+          },
+          error: function (data) {
+            toastr.error(data)
+          }
+        })
+      }
+
+      function query_images_by_region() {
+        $('#image').empty()
+        $.ajax({
+          url: '{% url "api-alicloud:gateway-images" region='REGIONTMP' %}'.replace('REGIONTMP', region),
+          type: 'GET',
+          contentType: "application/json",
+          success: function (data) {
+            current_images_list = data
+            init_image_data_disk_info(data[0].ImageId)
+            var html = ''
+            data.forEach(function (info) {
+              html += '<option value=IMAGE_ID>IMAGE_NAME</option>'.replaceAll('IMAGE_ID', info.ImageId).replaceAll('IMAGE_NAME', info.ImageName)
+            })
+            $('#image').append(html)
+          },
+          error: function (data) {
+            toastr.error(data)
+          }
+        })
+      }
+
+      function handle_network_type_change() {
+        var network_type = $('#network_type').val()
+        if (network_type == 'vpc') {
+          $('.vpc-options').show()
+        } else {
+          $('.vpc-options').hide()
+          $('.vpc-options select').val('')
+        }
+      }
+
+
+      function init_image_data_disk_info(imageId) {
+        $('.image-data-disk').remove()
+        var dataDiskInfo = []
+        current_images_list.forEach(function (info) {
+          if (info.ImageId == imageId) {
+            info.DiskDeviceMapping.forEach(function (d) {
+              if (d.Type == 'data') {
+                dataDiskInfo.push(d)
+              }
+            })
+            return
+          }
+        })
+        console.log(dataDiskInfo)
+        dataDiskInfo.forEach(function (info) {
+          var $diskForm = $('#image-data-disk-template').first().clone()
+          var new_id = 'image_disk_' + image_disk_counter
+          image_disk_counter++
+          $diskForm.addClass('image-data-disk')
+          $diskForm.attr('id', 'image_disk_' + image_disk_counter)
+          $diskForm.find('select').attr('name', new_id + '_category').attr('data-snapshot-id', info.SnapshotId)
+          $diskForm.find('input').attr('name', new_id + '_size').val(info.Size)
+          console.log($diskForm)
+          $('.data-disks').append($diskForm)
+          $diskForm.show()
+        })
+      }
+
+      function get_all_data_disk_info() {
+        var data_disk = []
+        $('.image-data-disk').each(function () {
+          var $category = $(this).find('select')
+          var $size = $(this).find('input')
+          data_disk.push({
+            category: $category.val(),
+            snapshot_id: $category.attr('data-snapshot-id'),
+            size: Number($size.val())
+          })
+        })
+        var new_data_disk_count = $('#data_disk_count').val()
+        var new_data_disk_category = $('#data_disk_category').val()
+        var new_data_disk_size = $('#data_disk_size').val()
+        console.log(new_data_disk_count)
+        console.log($('#data_disk_count'))
+        for (var i = 0; i < new_data_disk_count; i++) {
+          data_disk.push({
+            category: new_data_disk_category,
+            size: Number(new_data_disk_size)
+          })
+        }
+        return JSON.stringify(data_disk)
+      }
+
+
+      function test_submit_with_mock_data() {
+        var data = "{\"csrfmiddlewaretoken\":\"6AdVPpJf8XDFD2HmFV2byIRG1yPAI5GmebPtlSZB64VnWaN7rGqEJFnTlP6PXfBb\",\"region\":\"cn-beijing\",\"zone\":\"cn-beijing-c\",\"cores\":\"4\",\"memory\":\"8\",\"network_type\":\"classic\",\"instance_type\":\"ecs.sn1.large\",\"image\":\"m-2zed232pzwmot9iwxsmm\",\"system_disk_category\":\"cloud_efficiency\",\"system_disk_size\":\"40\",\"sg\":\"G1096298575498592\",\"instance_name\":\"AAA\",\"host_name\":\"\",\"admin_user\":\"b5370742-7815-424f-bf5f-ca27cc954c30\",\"nodes\":[\"4d57c586-6382-4fd6-97fd-bb8bf922e8e3\"],\"domain\":\"\",\"disk_data\":\"[{},{\\\"category\\\":\\\"cloud_efficiency\\\",\\\"snapshot_id\\\":\\\"s-2ze1br8sjl2moi969wft\\\",\\\"size\\\":\\\"500\\\"}]\"}"
+        var form = $('form')
+        var props = {
+          url: '{% url "api-alicloud:ecs-template-list" %}',
+          method: 'POST',
+          form: form,
+          data: {a: 'a'},
+          redirect_to: '{% url "alicloud:alicloud-template-ecs-list" %}'
+        };
+        formSubmit(props);
+
+      }
+
+      function safe_boolean(value) {
+        var value_type = typeof (value)
+        if (value_type == 'string') {
+          value = value.toLowerCase()
+          if (value === 'true') {
+            return true
+          }
+          if (value === 'false') {
+            return false
+          }
+        }
+
+        if (value_type == 'boolean') {
+          return value
+        }
+        return null
+      }
+
+      function check_password_is_same() {
+        var repeat_value = $('#password_repeat').val()
+        var password_value = $('#password').val()
+        if (repeat_value === password_value) {
+          return true
+        } else {
+          return false
+        }
+      }
+
+      $(document).ready(function () {
+        {#test_submit_with_mock_data()#}
+        $('#image-data-disk-template').hide()
+        $('.select2').select2({});
+        init_cpu_memory_option()
+        region = $('#region').val()
+        getZonesByRegion()
+        get_vpc_by_region()
+        query_images_by_region()
+        $('#id_nodes.select2').select2({
+          closeOnSelect: false
+        });
+
+      }).on("change", "#region", function (e) {
+        region = $(this).val()
+        getZonesByRegion()
+        query_images_by_region()
+        get_vpc_by_region()
+      }).on("change", '#zone', function (e) {
+        zone = $(this).val()
+        query_instance_type_by_resource()
+      }).on("change", '#image', function (e) {
+        console.log('image_change')
+        init_image_data_disk_info($(this).val())
+      }).on("change", '#network_type', function (e) {
+        handle_network_type_change()
+        get_security_group()
+      }).on("change", '#vpc_id', function () {
+        get_vswitch_by_vpc()
+        get_security_group()
+      }).on("change", ".itype .resouce-condition", function (e) {
+        query_instance_type_by_resource()
+      }).on("blur", "#password_repeat", function () {
+        console.log('check-same')
+        var repeat_value = $(this).val()
+        var $check_fail_text = $('#password_check_fail')
+        var is_same = check_password_is_same()
+        if (is_same) {
+          $check_fail_text.hide()
+        } else {
+          $check_fail_text.show()
+        }
+      }).on("change", '#password_inherit', function () {
+        var is_inherit = safe_boolean($(this).val())
+        var $password_input = $('.password-input')
+        if (is_inherit) {
+          $password_input.hide()
+          $password_input.find('input').val('')
+          $('#password_check_fail').hide()
+        } else {
+          $password_input.show()
+        }
+      })
+        .on("submit", "form", function (evt) {
+          evt.preventDefault();
+          if (!check_password_is_same()) {
+            alert('密码输入不一致， 请检查')
+            return
+          }
+          var form = $("form");
+          var data = form.serializeObject();
+          var diskData = []
+          $.each(data, function (k, v) {
+            if (k.startsWith('image_disk_')) {
+              delete data[k]
+            }
+
+            if (k.startsWith('data_disk_')) {
+              delete data[k]
+            }
+
+          })
+          if (!data.hasOwnProperty('has_public_ip')) {
+            delete data['internet_bandwidth']
+            delete data['internet_charge_type']
+          } else {
+            data.has_public_ip = safe_boolean(data.has_public_ip)
+          }
+          data.password_inherit = safe_boolean(data.password_inherit)
+          delete data['password_repeat']
+          data.data_disk_info = get_all_data_disk_info()
+
+          if (typeof data["nodes"] == "string") {
+            data["nodes"] = [data["nodes"]]
+          }
+          console.log(data)
+          var props = {
+            url: '{% url "api-alicloud:ecs-template-list" %}',
+            data: data,
+            method: 'POST',
+            form: form,
+            redirect_to: '{% url "alicloud:alicloud-template-ecs-list" %}'
+          };
+          formSubmit(props);
+        })
+    </script>
+{% endblock %}
