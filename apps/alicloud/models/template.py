@@ -65,8 +65,18 @@ class EcsTemplate(OrgModelMixin):
     date_created = models.DateTimeField(auto_now_add=True, null=True, blank=True, verbose_name=_('Date created'))
     domain = models.ForeignKey("assets.Domain", null=True, blank=True, verbose_name=_("Domain"),
                                on_delete=models.SET_NULL)
-    nodes = models.ManyToManyField('assets.Node', default=default_node, related_name='ecs_template', verbose_name=_("Nodes"))
+    nodes = models.ManyToManyField('assets.Node', default=default_node, related_name='ecs_template',
+                                   verbose_name=_("Nodes"))
     # Auth
     admin_user = models.ForeignKey('assets.AdminUser', on_delete=models.PROTECT, null=True,
                                    verbose_name=_("Admin user"),
                                    )
+
+
+class RosTemplate(OrgModelMixin):
+    id = models.UUIDField(default=uuid.uuid4, primary_key=True)
+    region = models.CharField(max_length=256)
+    name = models.CharField(max_length=256, blank=False)
+    description = models.CharField(max_length=512, blank=True, default='')
+    body = models.TextField(blank=True)
+    date_created = models.DateTimeField(auto_now_add=True, null=True, blank=True, verbose_name=_('Date created'))

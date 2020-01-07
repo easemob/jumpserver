@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import json
+import time
 
 from aliyunsdkcore.client import AcsClient
 from aliyunsdkecs.request.v20140526.CreateLaunchTemplateRequest import CreateLaunchTemplateRequest
@@ -11,6 +12,11 @@ from aliyunsdkecs.request.v20140526.DescribeRecommendInstanceTypeRequest import 
 from aliyunsdkecs.request.v20140526.DescribeVpcsRequest import DescribeVpcsRequest
 from aliyunsdkecs.request.v20140526.DescribeRegionsRequest import DescribeRegionsRequest
 from aliyunsdkecs.request.v20140526.RunInstancesRequest import RunInstancesRequest
+from aliyunsdkros.request.v20190910.CreateStackRequest import CreateStackRequest
+from aliyunsdkros.request.v20190910.GetStackRequest import GetStackRequest
+from aliyunsdkros.request.v20190910.GetTemplateRequest import GetTemplateRequest
+from aliyunsdkros.request.v20190910.ListTemplatesRequest import ListTemplatesRequest
+from aliyunsdkros.request.v20190910.DescribeRegionsRequest import DescribeRegionsRequest as RosDescribeRegionsRequest
 from alicloud.models import EcsTemplate
 from alicloud.tasks import create_ecs_info_from_alicoud
 from common.utils import get_object_or_none, get_logger
@@ -77,7 +83,7 @@ class EcsClient:
         request.set_ActionType('x86_64')
         request.set_ImageOwnerAlias('self')
         result = []
-        for page_info in self.paganiate_get_all_data(request):
+        for page_info in self.pagination_get_all_data(request):
             result.extend(
                 [dict(ImageId=info['ImageId'], ImageName=info['ImageName'],
                       DiskDeviceMapping=info['DiskDeviceMappings']['DiskDeviceMapping']) for info in
@@ -99,7 +105,7 @@ class EcsClient:
             print(info['InstanceType'])
         return json.loads(response)['Data']['RecommendInstanceType']
 
-    def paganiate_get_all_data(self, request, page_zie=50):
+    def pagination_get_all_data(self, request, page_zie=50):
         page_number = 1
         request.set_PageSize(50)
         request.set_accept_format('json')
@@ -121,7 +127,7 @@ class EcsClient:
         if network_type == 'vpc':
             request.set_VpcId(vpc_id)
         result = []
-        for page_info in self.paganiate_get_all_data(request):
+        for page_info in self.pagination_get_all_data(request):
             result.extend(
                 [dict(SecurityGroupId=info['SecurityGroupId'], SecurityGroupName=info['SecurityGroupName'],
                       EcsCount=info['EcsCount']) for info in
@@ -131,7 +137,7 @@ class EcsClient:
     def get_vpc(self):
         request = DescribeVpcsRequest()
         result = []
-        for page_info in self.paganiate_get_all_data(request):
+        for page_info in self.pagination_get_all_data(request):
             result.extend([dict(VpcName=info['VpcName'], VpcId=info['VpcId']) for info in page_info['Vpcs']['Vpc']])
         return result
 
@@ -139,7 +145,7 @@ class EcsClient:
         request = DescribeVSwitchesRequest()
         request.set_VpcId(vpc_id)
         result = []
-        for page_info in self.paganiate_get_all_data(request):
+        for page_info in self.pagination_get_all_data(request):
             result.extend([dict(VSwitchName=info['VSwitchName'], VSwitchId=info['VSwitchId'], ) for info in
                            page_info['VSwitches']['VSwitch']])
         return result
@@ -215,9 +221,101 @@ class EcsClient:
             return False, str(e)
 
 
+class RosClient:
+    _all_region_ros_clients = {}
+
+    def __init__(self, region='cn-beijing'):
+        self.region = region
+        self.client = AliClient.get_client_by_region(self.region)
+
+    def __new__(cls, *args, **kwargs):
+        region = ''
+        if len(args) == 0:
+            region = 'cn-beijing'
+        else:
+            region = args[0]
+        if not cls._all_region_ros_clients.get(region):
+            cls._all_region_ros_clients[region] = super().__new__(cls)
+        return cls._all_region_ros_clients[region]
+
+    def query_region(self):
+        request = RosDescribeRegionsRequest()
+        request.set_accept_format('json')
+        response = self.client.do_action_with_exception(request)
+        result = json.loads(response)
+        return [dict(RegionId=info['RegionId'], LocalName=info['LocalName']) for info in result['Regions']]
+
+    def pagination_get_all_data(self, request, page_zie=50):
+        page_number = 1
+        request.set_PageSize(50)
+        request.set_accept_format('json')
+        request.set_PageNumber(page_number)
+        response = self.client.do_action_with_exception(request)
+        print(response)
+        response_dict = json.loads(response)
+        yield response_dict
+        total_count = response_dict['TotalCount']
+        while page_number * page_zie < total_count:
+            request.set_PageNumber(page_number)
+            response = self.client.do_action_with_exception(request)
+            page_number += 1
+            yield json.loads(response)
+
+    def list_templates(self):
+        request = ListTemplatesRequest()
+        result = []
+        for page_info in self.pagination_get_all_data(request):
+            result.extend([dict(SecurityGroupId=info['TemplateName'], SecurityGroupName=info['TemplateId']) for info in
+                           page_info['Templates']])
+        return result
+
+    def get_template_info(self, template_id):
+        request = GetTemplateRequest()
+        request.set_accept_format('json')
+        request.set_TemplateId(template_id)
+        response = self.client.do_action_with_exception(request)
+        return json.loads(response)
+
+    def create_stack(self, stack_name, template_body, params):
+        request = CreateStackRequest()
+        request.set_accept_format('json')
+        request.set_StackName(stack_name)
+        request.set_TemplateBody(template_body)
+        request.set_TimeoutInMinutes(10)
+        request.set_Parameterss([dict(ParameterKey=k, ParameterValue=v) for k, v in params.items()])
+        response = self.client.do_action_with_exception(request)
+        stack_info = self.get_stack_info(json.loads(response).get('StackId'))
+        timeout_second = 60
+        while "COMPLETE" not in stack_info.get('status'):
+            if timeout_second <= 0:
+                return stack_info
+            time.sleep(3)
+            stack_info = self.get_stack_info(json.loads(response).get('StackId'))
+            timeout_second -= 3
+        return stack_info
+
+    def get_stack_info(self, stack_id):
+        request = GetStackRequest()
+        request.set_StackId(stack_id)
+        response = json.loads(self.client.do_action_with_exception(request))
+        result = {}
+        status = response.get('Status')
+        result['status'] = status
+        result['stack_id'] = stack_id
+        if status == 'CREATE_COMPLETE':
+            outputs = [dict(key=o.get('OutputKey'), value=o.get('OutputValue')) for o in response['Outputs']]
+            result['outputs'] = outputs
+        reason = response.get('StatusReason')
+        result['reason'] = reason
+        return result
+
+
 if __name__ == '__main__':
-    ecs_util = EcsClient('cn-beijing')
-    ecs_util.create_and_run_instance('daff82f1c259471794cf4b880b89658e')
+    ros_util = RosClient()
+    print(ros_util.get_template_info('99551324-d7a8-42df-bfbc-63bdb5550dc0'))
+
+    # ecs_util = EcsClient('cn-beijing')
+    # ecs_util.create_and_run_instance('daff82f1c259471794cf4b880b89658e')
 
     # ecs_util.get_vpc()
     # print('------')
