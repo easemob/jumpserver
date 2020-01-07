@@ -17,4 +17,7 @@ urlpatterns = [
     path('template/ecs/<uuid:pk>/', views.EcsTeplateDetailView.as_view(), name='alicloud-template-ecs-detail'),
     path('template/ecs/create/', views.EcsTeplateCreateView.as_view(), name='alicloud-template-ecs-create'),
     path('template/slb/', views.SlbTemplate.as_view(), name='alicloud-template-slb-list'),
+    path('template/ros/', views.RosTemplate.as_view(), name='alicloud-template-ros-list'),
+    path('template/ros/create/', views.RosTeplateCreateView.as_view(), name='alicloud-template-ros-create'),
+    path('template/ros/<uuid:pk>/stack/create/', views.RosStackCreateView.as_view(), name='alicloud-ros-stack-create')
 ]

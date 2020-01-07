@@ -16,6 +16,7 @@ router.register('oss', api.AliCloudOssViewSet, 'oss')
 
 bulk_router = BulkRouter()
 bulk_router.register('template/ecs', api.EcsTemplateViewSet, 'ecs-template')
+bulk_router.register('template/ros', api.RosTemplateViewSet, 'ros-template')
 
 urlpatterns = [
     path('ecs/sync', api.AliCloudEcsSyncUpdate.as_view(), name='ecs-sync'),

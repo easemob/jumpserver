@@ -1,0 +1,38 @@
+{% extends '_modal.html' %}
+{% load i18n %}
+{% load static %}
+
+{% block modal_class %}modal-lg{% endblock %}
+{% block modal_id %}template_body_modal{% endblock %}
+{% block modal_title%}{% trans "Template body" %}{% endblock %}
+{% block modal_body %}
+<style>
+.inmodal .modal-header {
+    padding: 10px 10px;
+    text-align: center;
+}
+
+</style>
+
+<div class="wrapper wrapper-content" style="max-height: 500px; overflow-y: scroll">
+<pre>
+<code id="template-body">
+</code>
+</pre>
+</div>
+
+<script>
+
+$(document).ready(function(){
+}).on('show.bs.modal', function () {
+
+})
+</script>
+{% endblock %}
+
+{% block modal_button %}
+    <button id="close_button2" data-dismiss="modal" class="btn btn-white close_btn2" type="button">{% trans "Close" %}</button>
+{% endblock %}
+
+
+

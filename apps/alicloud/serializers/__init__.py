@@ -7,3 +7,4 @@ from .rds import *
 from .kvstore import *
 from .billing import *
 from .asset import *
+from .ros import *
