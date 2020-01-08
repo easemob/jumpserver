@@ -112,7 +112,12 @@ class RosStackCreateForm(forms.Form):
 
                 if filed_type == 'String':
                     self.handle_string_type(filed_params, v)
-                    self.fields[k] = forms.CharField(**filed_params)
+                    allow_values = v.get('AllowedValues')
+                    if allow_values and len(allow_values) > 0:
+                        filed_params.pop('strip')
+                        self.fields[k] = forms.ChoiceField(choices=zip(allow_values, allow_values), **filed_params)
+                    else:
+                        self.fields[k] = forms.CharField(**filed_params)
                     continue
 
                 if filed_type == 'Boolean':
