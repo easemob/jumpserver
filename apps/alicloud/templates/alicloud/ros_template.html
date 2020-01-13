@@ -52,6 +52,7 @@
     </div>
     </div>
     {% include 'alicloud/_ros_template_body_modal.html' %}
+    {% include 'alicloud/_ros_template_update_modal.html' %}
 {% endblock %}
 {% block custom_foot_js %}
     <script>
@@ -78,8 +79,10 @@
             },
             {
               targets: 4, createdCell: function (td, cellData) {
-                var del_btn = '<a class="btn btn-xs btn-info m-l-xs btn_asset_info" data-uid="{{ DEFAULT_PK }}">查看内容</a>'.replace('{{ DEFAULT_PK }}', cellData);
-                $(td).html(del_btn)
+                var html = ''
+                html += '<a class="btn btn-xs btn-info m-l-xs btn_asset_info" data-uid="{{ DEFAULT_PK }}">查看</a>'.replace('{{ DEFAULT_PK }}', cellData);
+                html += '<a class="btn btn-xs btn-warning m-l-xs btn_asset_update" data-uid="{{ DEFAULT_PK }}">修改</a>'.replace('{{ DEFAULT_PK }}', cellData);
+                $(td).html(html)
               }
             },
             {
@@ -161,9 +164,72 @@
         }, function () {
           doDelete($data_table, name, the_url)
         });
+      }).on('click', '#btn_bulk_update', function () {
+        var action = $('#slct_bulk_update').val();
+        var id_list = asset_table.selected;
+        console.log('selected', id_list)
+        if (id_list.length === 0) {
+          toastr.error("未选择模板!");
+          return false;
+        }
+        var the_url = "{% url 'api-alicloud:ros-template-list' %}";
+        var data = {
+          'resources': id_list
+        };
+
+        function doRemove() {
+          swal({
+            title: "{% trans 'Are you sure?' %}",
+            text: "{% trans 'This will delete the selected templates !!!' %}",
+            type: "warning",
+            showCancelButton: true,
+            cancelButtonText: "{% trans 'Cancel' %}",
+            confirmButtonColor: "#DD6B55",
+            confirmButtonText: "{% trans 'Confirm' %}",
+            closeOnConfirm: false
+          }, function () {
+            function success(data) {
+              url = setUrlParam(the_url, 'spm', data.spm);
+              APIUpdateAttr({
+                url: url,
+                method: 'DELETE',
+                success: function () {
+                  $('#ros_template_list_table').DataTable().ajax.reload();
+                },
+                flash_message: false,
+              });
+              var msg = "{% trans 'Asset Deleted.' %}";
+              swal("{% trans 'Asset Delete' %}", msg, "success");
+            }
+
+            function fail() {
+              var msg = "{% trans 'Asset Deleting failed.' %}";
+              swal("{% trans 'Asset Delete' %}", msg, "error");
+            }
+
+            APIUpdateAttr({
+              url: "{% url 'api-common:resources-cache' %}",
+              method: 'POST',
+              body: JSON.stringify(data),
+              success: success,
+              error: fail
+            })
+          })
+        }
+
+        switch (action) {
+          case 'remove':
+            doRemove();
+            break;
+          default:
+            break;
+        }
+        $(".ipt_check_all").prop("checked", false)
+
       }).on('click', '.btn_asset_info', function () {
         $('#template-body').empty()
         var uid = $(this).data('uid')
+        var $body_modal = $('#template_body_modal')
         console.log(uid)
         $.ajax({
           url: '{% url "api-alicloud:ros-template-detail" pk=DEFAULT_PK %}'.replace("{{ DEFAULT_PK }}", uid),
@@ -177,7 +243,27 @@
             toastr.error(data)
           }
         })
-        $('#template_body_modal').modal({show: true})
+        $body_modal.modal({show: true})
+
+      }).on('click', '.btn_asset_update', function () {
+        var $update_modal = $('#template_update_modal')
+        var uid = $(this).data('uid')
+        $($update_modal).find('button').data('uid', uid)
+        $.ajax({
+          url: '{% url "api-alicloud:ros-template-detail" pk=DEFAULT_PK %}'.replace("{{ DEFAULT_PK }}", uid),
+          type: 'GET',
+          contentType: "application/json",
+          success: function (data) {
+            $update_modal.find('#template-body').val(data.body)
+            $update_modal.find('#name').val(data.name)
+            $update_modal.find('#description').val(data.description)
+            $update_modal.find('#region').val(data.region)
+            $update_modal.modal({show: true})
+          },
+          error: function (data) {
+            toastr.error(data)
+          }
+        })
 
       })
     </script>
