@@ -1,0 +1,101 @@
+{% extends '_modal.html' %}
+{% load i18n %}
+{% load static %}
+
+{% block modal_class %}modal-lg{% endblock %}
+{% block modal_id %}template_update_modal{% endblock %}
+{% block modal_title %}{% trans "Update Template" %}{% endblock %}
+{% block modal_body %}
+    <style>
+        .inmodal .modal-header {
+            padding: 10px 10px;
+            text-align: center;
+        }
+
+    </style>
+
+    <div class="wrapper wrapper-content" style="max-height: 450px; overflow-y: scroll">
+        <form action="" class="form-horizontal">
+            <div class="form-group">
+                <label for="region" class="col-sm-2 control-label">Region</label>
+                <div class="col-sm-9">
+                    <input type="text" id="region" class="form-control" readonly name="region" placeholder="Region">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="name" class="col-sm-2 control-label">Name</label>
+                <div class="col-sm-9">
+                    <input type="text" id="name" class="form-control" name="name" placeholder="Name">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="description" class="col-sm-2 control-label">Description</label>
+                <div class="col-sm-9">
+                    <input type="text" id="description" class="form-control" name="description"
+                           placeholder="Description">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="template-body" class="col-sm-2 control-label">Body</label>
+                <div class="col-sm-9">
+                    <textarea id="template-body" rows="8" class="form-control" name="body">
+                    </textarea>
+                </div>
+            </div>
+
+        </form>
+
+    </div>
+
+    <script>
+
+      function check_body_json_string(body) {
+        try {
+          if (typeof JSON.parse(body) == "object") {
+            return true;
+          }
+        } catch (e) {
+        }
+        return false;
+      }
+
+      $(document).ready(function () {
+      }).on('click', '#update_button', function () {
+        var uid = $(this).data('uid')
+        var form = $("form");
+        var data = form.serializeObject();
+        if (!check_body_json_string(data.body)) {
+          swal("格式有误", "body格式需为json，请检查", "error")
+          return
+        }
+        var props = {
+          url: '{% url "api-alicloud:ros-template-detail" pk=DEFAULT_PK %}'.replace("{{ DEFAULT_PK }}", uid),
+          data: data,
+          method: 'PUT',
+          form: form,
+          error: function (jqXHR) {
+            toastr.error(jqXHR.responseText)
+          },
+          success: function () {
+            toastr.success('更新成功')
+            $('#ros_template_list_table').DataTable().ajax.reload();
+            $('#template_update_modal').modal('hide')
+          }
+        };
+        formSubmit(props);
+      })
+    </script>
+{% endblock %}
+
+{% block modal_button %}
+    <button id="update_button" class="btn btn-primary"
+            type="button">{% trans "Update" %}</button>
+    <button id="close_button" data-dismiss="modal" class="btn btn-white close_btn2"
+            type="button">{% trans "Close" %}</button>
+{% endblock %}
+
+
+

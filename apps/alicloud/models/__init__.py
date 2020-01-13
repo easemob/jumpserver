@@ -7,3 +7,4 @@ from .oss import *
 from .billing import *
 from .asset import *
 from .template import *
+from .ros import *

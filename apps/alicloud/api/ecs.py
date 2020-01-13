@@ -94,13 +94,13 @@ class AliCloudEcsViewSet(mixins.CreateModelMixin, ReadOnlyModelViewSet):
         data = request.data
         ecs_client = EcsClient()
         succeed, result = ecs_client.create_and_run_instance(**request.data)
-        # self.notify_user_with_email([request.user.email], succeed, result)
+        self.notify_user_with_email([request.user.email], succeed, result)
         if succeed:
-            # template_id = data.pop('template')
-            # record = EcsCreateRecord.objects.create(result_ids=result, uid=request.user.username, **data)
-            # template = get_object_or_none(EcsTemplate, id=template_id)
-            # record.template = template
-            # record.save()
+            template_id = data.pop('template')
+            record = EcsCreateRecord.objects.create(result_ids=result, uid=request.user.username, **data)
+            template = get_object_or_none(EcsTemplate, id=template_id)
+            record.template = template
+            record.save()
             return Response(data={'create_ids': result}, status=201)
         else:
             return Response(data={'error_info': result}, status=400)

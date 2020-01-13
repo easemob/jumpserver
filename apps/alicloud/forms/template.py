@@ -3,6 +3,7 @@
 import json
 
 from django import forms
+from django.core.validators import RegexValidator
 from django.utils.translation import gettext_lazy as _
 from common.utils import get_logger, get_object_or_none
 from orgs.mixins import OrgModelForm
@@ -111,7 +112,7 @@ class RosStackCreateForm(forms.Form):
                     continue
 
                 if filed_type == 'String':
-                    self.handle_string_type(filed_params, v)
+                    self.handle_string_type(filed_params, k, v)
                     allow_values = v.get('AllowedValues')
                     if allow_values and len(allow_values) > 0:
                         filed_params.pop('strip')
@@ -124,7 +125,7 @@ class RosStackCreateForm(forms.Form):
                     self.fields[k] = forms.BooleanField(**filed_params)
                     continue
 
-    def handle_string_type(self, params, v):
+    def handle_string_type(self, params, k, v):
         params['strip'] = True
         min_value = v.get('MinLength')
         max_value = v.get('MaxLength')
@@ -134,6 +135,9 @@ class RosStackCreateForm(forms.Form):
             params['max_length'] = max_value
         if v.get('NoEcho'):
             params['widget'] = forms.PasswordInput
+        if v.get('AllowedPattern'):
+            params['validators'] = [
+                RegexValidator(v.get('AllowedPattern'), message=f'param {k} not match allowed pattern')]
 
     def handle_integer_type(self, params, v):
         min_value = v.get('MinValue')

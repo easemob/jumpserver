@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, unicode_literals
 
+import json
+
 from django.contrib import messages
 from django.urls import reverse_lazy
 from django.views.generic import TemplateView, DetailView
@@ -9,7 +11,7 @@ from django.views.generic.edit import FormMixin
 from alicloud.ali_utils import EcsClient, RosClient
 from alicloud.forms import EcsTemplateCreateForm
 from alicloud.forms.template import RosTemplateCreateForm, RosStackCreateForm
-from alicloud.models import EcsTemplate
+from alicloud.models import EcsTemplate, StackCreateRecord
 from assets.models import Node
 from django.shortcuts import render, redirect
 from common.permissions import PermissionsMixin, IsValidUser
@@ -134,17 +136,19 @@ class RosStackCreateView(FormMixin, TemplateView):
         if form.is_valid():
             data = form.data.dict()
             data.pop('csrfmiddlewaretoken')
+            params = data.copy()
             ros_client = RosClient(data.pop('region'))
-            result = ''
+            results = {}
             try:
-                result = ros_client.create_stack(data.pop('StackName'), data.pop('TemplateBody'), data)
+                results = ros_client.create_stack(data.pop('StackName'), data.pop('TemplateBody'), data)
+                StackCreateRecord.objects.create(uid=request.user.username, params=json.dumps(params), results=results)
             except Exception as e:
                 msg = str(e)
                 messages.warning(request, msg)
                 context = self.get_context_data()
                 context.update({"form": form})
                 return render(request, self.template_name, context)
-            msg = f"Create Stack successfully:{result}"
+            msg = f"Create Stack successfully:{results}"
             messages.success(request, msg)
             return redirect('alicloud:alicloud-template-ros-list')
         else:
