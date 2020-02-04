@@ -52,10 +52,13 @@ def sync_ecs_list_info_manual():
                 if v != '':
                     setattr(ecs, k, v)
             try:
-                if not ecs.nodes.exclude(key='1').first():
+                current_not_root_node = ecs.nodes.exclude(key='1').first()
+                if not current_not_root_node:
                     logger.info('update node for root node ecs')
                     node = auto_allocate_asset_node(info.get('instance_name'), 'ecs')
                     ecs.nodes.set([node])
+                else:
+                    node = current_not_root_node
                 ecs.save()
                 updated.append(info['instance_name'])
             except Exception as e:
@@ -90,7 +93,9 @@ def sync_ecs_list_info_manual():
                 setattr(asset, 'hostname', info.get('instance_name'))
                 setattr(asset, 'ip', info.get('inner_ip'))
                 try:
+                    logger.info('jumpserver asset %s append in %s node', asset, node)
                     asset.save()
+                    node.assets.add(asset)
                     j_updated.append(info['instance_name'])
                 except Exception as e:
                     j_failed.append('%s: %s' % (info['instance_name'], str(e)))
@@ -383,7 +388,11 @@ def sync_oss_list_info_manual():
 def auto_get_admin_and_domain(name):
     admin_user, domain = None, None
     logger.info('try to auto get amdin_user and domain with {}'.format(name))
-    num_list = re.findall(r"\d+", name)
+    search_name_list = re.split('-|_', name)
+    search_name = name
+    if len(search_name_list) > 1:
+        search_name = name[name.index(search_name_list[1]):]
+    num_list = re.findall(r"\d+", search_name)
     if len(num_list):
         name = name[:name.index(num_list[-1])]
     logger.info('try to find name {}'.format(name))
@@ -403,7 +412,11 @@ def clean_destory_assets_in_jumpserver():
 
 def auto_allocate_asset_node(name, asset_type):
     logger.info('auto allocate {} {}'.format(name, asset_type))
-    num_list = re.findall(r"\d+", name)
+    search_name_list = re.split('-|_', name)
+    search_name = name
+    if len(search_name_list) > 1:
+        search_name = name[name.index(search_name_list[1]):]
+    num_list = re.findall(r"\d+", search_name)
     if len(num_list):
         name = name[:name.index(num_list[-1])]
     logger.info('auto allocate find name {}'.format(name))
