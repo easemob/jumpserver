@@ -38,6 +38,7 @@ class Ecs(OrgModelMixin):
     network_type = models.CharField(max_length=128, verbose_name=_('NetworkType'))
     instance_name = models.CharField(max_length=128, verbose_name=_('InstanceName'))
     region = models.CharField(max_length=128, verbose_name=_('RegionId'))
+    zone = models.CharField(max_length=128, verbose_name=_('ZoneId'), default='')
     status = models.CharField(max_length=128, verbose_name=_('Status'))
     io_optimized = models.BooleanField(verbose_name=_('IoOptimized'))
     expired_time = models.DateTimeField(verbose_name=_('ExpiredTime'))
