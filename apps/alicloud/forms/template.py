@@ -137,7 +137,8 @@ class RosStackCreateForm(forms.Form):
             params['widget'] = forms.PasswordInput
         if v.get('AllowedPattern'):
             params['validators'] = [
-                RegexValidator(v.get('AllowedPattern'), message=f'param {k} not match allowed pattern')]
+                RegexValidator(v.get('AllowedPattern'),
+                               message=f'param {k} not match allowed pattern {v.get("AllowedPattern")}')]
 
     def handle_integer_type(self, params, v):
         min_value = v.get('MinValue')

@@ -75,7 +75,7 @@
                            <th class="text-center">{% trans 'InstanceName' %}</th>
                            <th class="text-center">{% trans 'IP' %}</th>
                            <th class="text-center">{% trans 'Resource' %}</th>
-                           <th class="text-center">{% trans 'Region' %}</th>
+                           <th class="text-center">{% trans 'Zone' %}</th>
                            <th class="text-center">{% trans 'Status' %}</th>
                            <th class="text-center">{% trans 'ChargeType' %}</th>
                        </tr>
@@ -166,7 +166,7 @@ function initTable() {
         ajax_url: '{% url "api-alicloud:ecs-list" %}',
         columns: [
             {data: "id"}, {data: "instance_name" }, {data: "inner_ip" },
-            {data: "cpu", orderable: false},{data: "region", orderable: false},
+            {data: "cpu", orderable: false},{data: "zone", orderable: false},
             {data: "status"}, {data: "expired_time" }
         ],
         op_html: $('#actions').html()

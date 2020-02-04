@@ -46,6 +46,7 @@ class AliCloudUtil(object):
                 'inner_ip': InnerAddress, 'public_ip': PublicIpAddress,
                 'instance_name': Instance['InstanceName'], 'instance_id': Instance['InstanceId'],
                 'region': Instance['RegionId'], 'status': Instance['Status'],
+                'zone':Instance['ZoneId'],
                 'cpu': Instance['Cpu'], 'memory': Instance['Memory'],
                 'network_type': Instance['InstanceNetworkType'], 'instance_charge_type': Instance['InstanceChargeType'],
                 'maximum_bandwidth': Instance['InternetMaxBandwidthOut'], 'io_optimized': Instance['IoOptimized'],
