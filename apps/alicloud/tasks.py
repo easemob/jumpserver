@@ -498,9 +498,8 @@ def sync_billing_info_manual(bill_cycle=None, page_size=100):
         row_data = {
             'instance_id': instance_id,
             'cycle': bill_cycle,
-            'product_name': product_name,
             'product_code': product_code,
-            'defaults': dict(payment_amount=payment_amount)
+            'defaults': dict(payment_amount=payment_amount, product_name=product_name)
         }
         Billing.objects.update_or_create(**row_data)
         redis_con.delete(k)
@@ -508,24 +507,22 @@ def sync_billing_info_manual(bill_cycle=None, page_size=100):
 
     logger.info(f'sync {bill_cycle} billing domian from overview start . ')
 
-    for pi in ali_util.get_bill_overview(billing_cycle=bill_cycle)['Data']['Items']['Item']:
-        if pi["ProductName"] == "域名":
-            row_data = {
-                'instance_id': bill_cycle + pi["ProductType"],
-                'cycle': bill_cycle,
-                'product_name': pi["ProductName"],
-                'product_code': pi["ProductCode"],
-                'defaults': dict(payment_amount=pi["PaymentAmount"])
-            }
-            Billing.objects.update_or_create(**row_data)
+    other_products = {
+        "域名": "domain",
+        "云虚拟主机": "hosting"
+    }
 
-        if pi["ProductName"] == "云虚拟主机":
+    for pi in ali_util.get_bill_overview(billing_cycle=bill_cycle)['Data']['Items']['Item']:
+
+        if pi["ProductName"] in other_products.keys():
+            if "ProductCode" not in pi.keys():
+                pi["ProductCode"] = other_products[pi["ProductName"]]
+
             row_data = {
-                'instance_id': bill_cycle + "-hosting",
+                'instance_id': bill_cycle + "-" + other_products[pi["ProductName"]],
                 'cycle': bill_cycle,
-                'product_name': pi["ProductName"],
-                'product_code': "hosting",
-                'defaults': dict(payment_amount=pi["PaymentAmount"])
+                'product_code': pi["ProductCode"],
+                'defaults': dict(payment_amount=pi["PaymentAmount"], product_name=pi["ProductName"])
             }
             Billing.objects.update_or_create(**row_data)
 
