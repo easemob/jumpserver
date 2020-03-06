@@ -39,7 +39,16 @@
         <li id="alicloud-rds"><a href="{% url 'alicloud:alicloud-rds-list' %}">{% trans 'Rds' %}</a></li>
         <li id="alicloud-oss"><a href="{% url 'alicloud:alicloud-oss-list' %}">{% trans 'Oss' %}</a></li>
         <li id="alicloud-billing"><a href="{% url 'alicloud:alicloud-billing-query' %}">{% trans 'Billing' %}</a></li>
+        <li id="alicloud-template"><a href="{% url 'alicloud:alicloud-template-ecs-list' %}"> Template </a></li>
+    </ul>
+</li>
 
+<li id="didicloud">
+    <a>
+        <i class="fa fa-car" style="width: 14px"></i> <span class="nav-label">{% trans 'DidiCloud' %}</span><span class="fa arrow"></span>
+    </a>
+    <ul class="nav nav-second-level">
+        <li id="didicloud-dc2"><a href="{% url 'didicloud:didicloud-dc2-list' %}"> DC2 </a></li>
     </ul>
 </li>
 

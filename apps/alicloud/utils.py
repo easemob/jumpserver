@@ -5,6 +5,7 @@ import time
 from datetime import datetime, timedelta
 
 import oss2
+from aliyunsdkcore.acs_exception.exceptions import ServerException
 from aliyunsdkcore.client import AcsClient
 from aliyunsdkecs.request.v20140526 import DescribeInstancesRequest
 from aliyunsdkrds.request.v20140815 import DescribeDBInstancesRequest, DescribeDBInstanceAttributeRequest
@@ -18,6 +19,7 @@ from aliyunsdkbssopenapi.request.v20171214.QueryBillOverviewRequest import Query
 from django.conf import settings
 
 from common.utils import get_logger
+
 
 class AliCloudUtil(object):
     def __init__(self):
@@ -44,6 +46,7 @@ class AliCloudUtil(object):
                 'inner_ip': InnerAddress, 'public_ip': PublicIpAddress,
                 'instance_name': Instance['InstanceName'], 'instance_id': Instance['InstanceId'],
                 'region': Instance['RegionId'], 'status': Instance['Status'],
+                'zone':Instance['ZoneId'],
                 'cpu': Instance['Cpu'], 'memory': Instance['Memory'],
                 'network_type': Instance['InstanceNetworkType'], 'instance_charge_type': Instance['InstanceChargeType'],
                 'maximum_bandwidth': Instance['InternetMaxBandwidthOut'], 'io_optimized': Instance['IoOptimized'],
@@ -51,14 +54,22 @@ class AliCloudUtil(object):
             })
         return insert_result
 
-    def get_ecs_instances(self, pageSize=100):
-        request = DescribeInstancesRequest.DescribeInstancesRequest()
-        request.set_accept_format('json')
+    def get_ecs_instances(self, instanceIds=[], pageSize=100):
+        print(instanceIds, type(instanceIds), json.dumps(instanceIds))
         for clt in self.clt_conn_list:
             pageNumber = 1
+            request = DescribeInstancesRequest.DescribeInstancesRequest()
             while True:
-                request.set_query_params(dict(PageNumber=pageNumber, PageSize=pageSize))
-                clt_result = json.loads(clt.do_action_with_exception(request))
+                if len(instanceIds) > 0:
+                    request.set_InstanceIds(json.dumps(instanceIds))
+                request.set_accept_format('json')
+                request.set_PageSize(pageSize)
+                request.set_PageNumber(pageNumber)
+                print(clt.get_region_id(), clt)
+                response = clt.do_action_with_exception(request)
+                print(1111, response)
+                clt_result = json.loads(response)
+                print(clt_result)
                 result = clt_result['Instances']['Instance']
                 pageNumber += 1
                 if len(result) == 0:

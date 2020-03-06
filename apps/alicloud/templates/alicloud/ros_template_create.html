@@ -1,0 +1,72 @@
+{% extends '_base_create_update.html' %}
+{% load static %}
+{% load bootstrap3 %}
+{% load i18n %}
+{% load asset_tags %}
+{% load common_tags %}
+{% block custom_head_css_js_create %}
+    <style type="text/css">
+        .no-left-padding {
+            padding-left: 0px;
+        }
+    </style>
+{% endblock %}
+{% block form %}
+    <form action="" method="post" class="form-horizontal">
+        {% csrf_token %}
+        <h3>Information</h3>
+
+        <div class="form-group required">
+            <label class="col-md-2 control-label" for="region">Region</label>
+            <div class="col-md-9">
+                <select class="form-control" name="region" id="region">
+                    {% for info in region_list %}
+                        <option value="{{ info.RegionId }}">{{ info.LocalName }}({{ info.RegionId }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        {% bootstrap_form form layout="horizontal" %}
+        {% buttons %}
+            <div class="col-sm-9 col-sm-offset-2 text-right">
+                <button class="btn btn-default" type="reset"> {% trans 'Reset' %}</button>
+                <button id="submit_button" class="btn btn-primary" type="submit">{% trans 'Submit' %}</button>
+            </div>
+        {% endbuttons %}
+    </form>
+{% endblock %}
+
+{% block custom_foot_js %}
+    <script>
+
+      function check_body_json_string(body) {
+        try {
+          if (typeof JSON.parse(body) == "object") {
+            return true;
+          }
+        } catch (e) {
+        }
+        return false;
+      }
+
+      $(document).ready(function () {
+
+      }).on("submit", "form", function (evt) {
+        evt.preventDefault();
+        var form = $("form");
+        var data = form.serializeObject();
+        if (!check_body_json_string(data.body)){
+          swal("格式有误", "body格式需为json，请检查", "error")
+          return
+        }
+        var props = {
+          url: '{% url "api-alicloud:ros-template-list" %}',
+          data: data,
+          method: 'POST',
+          form: form,
+          redirect_to: '{% url "alicloud:alicloud-template-ros-list" %}'
+        };
+        formSubmit(props);
+      })
+    </script>
+{% endblock %}

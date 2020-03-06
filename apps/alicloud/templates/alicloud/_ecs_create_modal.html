@@ -1,0 +1,161 @@
+{% extends '_modal.html' %}
+{% load i18n %}
+{% load static %}
+
+{% block modal_class %}modal-lg{% endblock %}
+{% block modal_id %}asset_create_modal{% endblock %}
+{% block modal_title %}{% trans "Create asset" %}{% endblock %}
+{% block modal_body %}
+    <link href="{% static 'css/plugins/select2/select2.min.css' %}" rel="stylesheet">
+    <script src="{% static 'js/plugins/select2/select2.full.min.js' %}"></script>
+    <style>
+        .inmodal .modal-header {
+            padding: 10px 10px;
+            text-align: center;
+        }
+
+        .select2-drop {
+            z-index: 10050 !important;
+        }
+
+        .select2-search-choice-close {
+            margin-top: 0 !important;
+            right: 2px !important;
+            min-height: 10px;
+        }
+
+        .select2-search-choice-close:before {
+            color: black !important;
+        }
+
+        /*防止select2不会自动失去焦点*/
+        .select2-container {
+            z-index: 16000 !important;
+        }
+
+        .select2-drop-mask {
+            z-index: 15990 !important;
+        }
+
+        .select2-drop-active {
+            z-index: 15995 !important;
+        }
+
+
+    </style>
+
+    <div class="wrapper wrapper-content">
+        <form action="" method="post" class="form-horizontal">
+            <div class="row">
+                <div class="col-md-10 col-md-offset-1 animated fadeInRight" style="padding-bottom: 20px"
+                     id="split-right">
+                    <div class="form-group required">
+                        <label for="template" class="col-md-2 control-label">模板</label>
+                        <div class="col-md-9">
+                            <select class="form-control select2" data-placeholder="选择镜像" name="template" id="template">
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group required">
+                        <label for="instance_name" class="col-md-2 control-label">实例名</label>
+                        <div class="col-md-9">
+                            <input class="form-control" required name="instance_name"
+                                   id="instance_name"/>
+                        </div>
+                    </div>
+
+                    <div class="form-group required">
+                        <label for="amount" class="col-md-2 control-label">数量</label>
+                        <div class="col-md-9">
+                            <input class="form-control" type="number" min="1" , max="99" step="1" value="1" required
+                                   name="amount"
+                                   id="amount"/>
+                        </div>
+                    </div>
+
+                    <div class="form-group required" id="suffix_number_group">
+                        <label for="suffix_number" class="col-md-2 control-label">后缀起始数字</label>
+                        <div class="col-md-9">
+                            <input class="form-control" type="number" step="1" value="1" required
+                                   name="suffix_number"
+                                   id="suffix_number"/>
+                        </div>
+                    </div>
+
+
+                    <div class="form-group required">
+                        <label for="auto_renew" class="col-md-2 control-label">续费管理</label>
+                        <div class="col-md-9">
+                            <select class="form-control" required name="auto_renew"
+                                    id="auto_renew">
+                                <option value="true">自动续费</option>
+                                <option value="false">手动续费</option>
+                            </select>
+                        </div>
+                    </div>
+
+
+                </div>
+            </div>
+        </form>
+
+    </div>
+
+    <script>
+
+      var template_info_list = []
+
+      function fill_template_content() {
+        $template = $('#template')
+        $template.empty()
+        var html = ''
+        template_info_list.forEach(function (info) {
+          var name = info.name + ':' + info.cores + 'C' + info.memory + 'G(' + info.network_type + ')'
+          html += '<option value=VALUE> NAME </option>'.replace('VALUE', info.id).replace('NAME', name)
+        })
+        $template.append(html)
+
+        $('.select2').select2({
+          closeOnSelect: false
+        })
+      }
+
+      $(document).ready(function () {
+
+
+      }).on('show.bs.modal', '#asset_create_modal', function () {
+        $.ajax({
+          url: '{% url "api-alicloud:ecs-template-list" %}',
+          type: 'GET',
+          data: {limit: 9999},
+          contentType: "application/json",
+          success: function (data) {
+            template_info_list = data.results
+            if (template_info_list.length > 0) {
+              $('#instance_name').val(template_info_list[0].instance_name)
+            }
+            fill_template_content()
+          }
+        })
+      }).on('change', '#template', function () {
+        var template_id = $(this).val()
+        template_info_list.forEach(function (info) {
+          if (info.id == template_id) {
+            $('#instance_name').val(info.instance_name)
+            return
+          }
+        })
+      })
+
+
+    </script>
+{% endblock %}
+
+{% block modal_button %}
+    {{ block.super }}
+{% endblock %}
+{% block modal_confirm_id %}btn_ecs_create_confirm{% endblock %}
+
+
+

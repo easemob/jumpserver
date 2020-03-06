@@ -1,0 +1,270 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load bootstrap3 %}
+{% load i18n %}
+{% load common_tags %}
+
+{% block content %}
+    <div class="wrapper wrapper-content animated fadeInRight">
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="ibox float-e-margins">
+                    {% include 'alicloud/_template_nav_tabs.html' %}
+                    <div class="tab-content">
+                        <div class="ibox-content" style="border-width: 0;padding-top: 40px;">
+                            <div class="uc pull-left m-r-5" style="padding-bottom: 5px">
+                                <a class="btn btn-sm btn-primary btn-ros-template-create"> {% trans "Create template" %} </a>
+                            </div>
+                            <table class="table table-striped table-bordered table-hover " id="ros_template_list_table"
+                                   style="width: 100%">
+                                <thead>
+                                <tr>
+                                    <th class="text-center"><input type="checkbox" class="ipt_check_all"></th>
+                                    <th class="text-center">名称</th>
+                                    <th class="text-center">描述</th>
+                                    <th class="text-center">创建日期</th>
+                                    <th class="text-center">内容</th>
+                                    <th class="text-center">动作</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                </tbody>
+                            </table>
+
+                            <div id="actions" class="hide">
+                                <div class="input-group">
+                                    <select class="form-control m-b" style="width: auto" id="slct_bulk_update">
+                                        <option value="remove">删除</option>
+                                    </select>
+                                    <div class="input-group-btn pull-left" style="padding-left: 5px;">
+                                        <button id='btn_bulk_update' style="height: 32px;"
+                                                class="btn btn-sm btn-primary">
+                                            {% trans 'Submit' %}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+    {% include 'alicloud/_ros_template_body_modal.html' %}
+    {% include 'alicloud/_ros_template_update_modal.html' %}
+{% endblock %}
+{% block custom_foot_js %}
+    <script>
+      var asset_table = 0
+
+      function initTable() {
+        var options = {
+          ele: $('#ros_template_list_table'),
+          columnDefs: [
+            {
+              targets: 1, createdCell: function (td, cellData, rowData) {
+                cellData = htmlEscape(cellData);
+                var html = ''
+                html += '<a href="##">' + cellData + '</a>'
+                $(td).html(html);
+              }
+            },
+            {
+              targets: 3, createdCell: function (td, cellData) {
+                var html = ''
+                html += new Date(htmlEscape(cellData)).toLocaleDateString();
+                $(td).html(html);
+              }
+            },
+            {
+              targets: 4, createdCell: function (td, cellData) {
+                var html = ''
+                html += '<a class="btn btn-xs btn-info m-l-xs btn_asset_info" data-uid="{{ DEFAULT_PK }}">查看</a>'.replace('{{ DEFAULT_PK }}', cellData);
+                html += '<a class="btn btn-xs btn-warning m-l-xs btn_asset_update" data-uid="{{ DEFAULT_PK }}">修改</a>'.replace('{{ DEFAULT_PK }}', cellData);
+                $(td).html(html)
+              }
+            },
+            {
+              targets: 5, createdCell: function (td, cellData) {
+                var create_btn = '<a class="btn btn-xs btn-primary m-l-xs btn_stack_create" data-uid="{{ DEFAULT_PK }}">创建stack</a>'.replace('{{ DEFAULT_PK }}', cellData);
+                var del_btn = '<a class="btn btn-xs btn-danger m-l-xs btn_asset_delete" data-uid="{{ DEFAULT_PK }}">{% trans "Delete" %}</a>'.replace('{{ DEFAULT_PK }}', cellData);
+                var html = create_btn + del_btn
+                $(td).html(html)
+              }
+            }
+          ],
+          ajax_url: '{% url "api-alicloud:ros-template-list" %}',
+          columns: [
+            {data: "id"},
+            {data: "name"},
+            {data: "description"},
+            {data: "date_created"},
+            {data: "id", orderable: false},
+            {data: "id", orderable: false}
+          ],
+          op_html: $('#actions').html()
+        };
+        asset_table = jumpserver.initServerSideDataTable(options);
+        return asset_table
+      }
+
+
+      function doDelete(obj, name, url, redirectTo) {
+        var body = {};
+        var success = function () {
+          // swal('Deleted!', "[ "+name+"]"+" has been deleted ", "success");
+          if (!redirectTo) {
+            obj.ajax.reload();
+          } else {
+            window.location.href = redirectTo;
+          }
+        };
+        var fail = function () {
+          // swal("错误", "删除"+"[ "+name+" ]"+"遇到错误", "error");
+          swal(gettext('Error'), "[ " + name + " ]" + gettext("Being used by the asset, please unbind the asset first."), "error");
+        };
+        APIUpdateAttr({
+          url: url,
+          body: JSON.stringify(body),
+          method: 'DELETE',
+          success_message: gettext("Delete the success"),
+          success: success,
+          error: fail
+        });
+      }
+
+      $(document).ready(function () {
+        $('.nav-tabs li').removeClass('active')
+        $('.nav-tabs li:nth-child(3)').addClass('active')
+        initTable()
+
+      }).on('click', '.btn-ros-template-create', function () {
+        var url = "{% url 'alicloud:alicloud-template-ros-create' %}";
+        window.open(url, '_self');
+      }).on('click', '.btn_stack_create', function () {
+        var uid = $(this).data('uid')
+        var url = "{% url 'alicloud:alicloud-ros-stack-create' pk=DEFAULT_PK %}".replace("{{ DEFAULT_PK }}", uid);
+        window.open(url, '_self');
+      }).on('click', '.btn_asset_delete', function () {
+        var $this = $(this);
+        var $data_table = $("#ros_template_list_table").DataTable();
+        var name = $(this).closest("tr").find(":nth-child(2)").children('a').html();
+        var uid = $this.data('uid');
+        var the_url = '{% url "api-alicloud:ros-template-detail" pk=DEFAULT_PK %}'.replace("{{ DEFAULT_PK }}", uid);
+        swal({
+          title: gettext('Are you sure about deleting it?'),
+          text: " [" + name + "] ",
+          type: "warning",
+          showCancelButton: true,
+          cancelButtonText: gettext('Cancel'),
+          confirmButtonColor: "#ed5565",
+          confirmButtonText: gettext('Confirm'),
+          closeOnConfirm: true,
+        }, function () {
+          doDelete($data_table, name, the_url)
+        });
+      }).on('click', '#btn_bulk_update', function () {
+        var action = $('#slct_bulk_update').val();
+        var id_list = asset_table.selected;
+        console.log('selected', id_list)
+        if (id_list.length === 0) {
+          toastr.error("未选择模板!");
+          return false;
+        }
+        var the_url = "{% url 'api-alicloud:ros-template-list' %}";
+        var data = {
+          'resources': id_list
+        };
+
+        function doRemove() {
+          swal({
+            title: "{% trans 'Are you sure?' %}",
+            text: "{% trans 'This will delete the selected templates !!!' %}",
+            type: "warning",
+            showCancelButton: true,
+            cancelButtonText: "{% trans 'Cancel' %}",
+            confirmButtonColor: "#DD6B55",
+            confirmButtonText: "{% trans 'Confirm' %}",
+            closeOnConfirm: false
+          }, function () {
+            function success(data) {
+              url = setUrlParam(the_url, 'spm', data.spm);
+              APIUpdateAttr({
+                url: url,
+                method: 'DELETE',
+                success: function () {
+                  $('#ros_template_list_table').DataTable().ajax.reload();
+                },
+                flash_message: false,
+              });
+              var msg = "{% trans 'Asset Deleted.' %}";
+              swal("{% trans 'Asset Delete' %}", msg, "success");
+            }
+
+            function fail() {
+              var msg = "{% trans 'Asset Deleting failed.' %}";
+              swal("{% trans 'Asset Delete' %}", msg, "error");
+            }
+
+            APIUpdateAttr({
+              url: "{% url 'api-common:resources-cache' %}",
+              method: 'POST',
+              body: JSON.stringify(data),
+              success: success,
+              error: fail
+            })
+          })
+        }
+
+        switch (action) {
+          case 'remove':
+            doRemove();
+            break;
+          default:
+            break;
+        }
+        $(".ipt_check_all").prop("checked", false)
+
+      }).on('click', '.btn_asset_info', function () {
+        $('#template-body').empty()
+        var uid = $(this).data('uid')
+        var $body_modal = $('#template_body_modal')
+        console.log(uid)
+        $.ajax({
+          url: '{% url "api-alicloud:ros-template-detail" pk=DEFAULT_PK %}'.replace("{{ DEFAULT_PK }}", uid),
+          type: 'GET',
+          contentType: "application/json",
+          success: function (data) {
+            var bodyObj = JSON.parse(data.body)
+            $('#template-body').append(JSON.stringify(bodyObj, null, 4))
+          },
+          error: function (data) {
+            toastr.error(data)
+          }
+        })
+        $body_modal.modal({show: true})
+
+      }).on('click', '.btn_asset_update', function () {
+        var $update_modal = $('#template_update_modal')
+        var uid = $(this).data('uid')
+        $($update_modal).find('button').data('uid', uid)
+        $.ajax({
+          url: '{% url "api-alicloud:ros-template-detail" pk=DEFAULT_PK %}'.replace("{{ DEFAULT_PK }}", uid),
+          type: 'GET',
+          contentType: "application/json",
+          success: function (data) {
+            $update_modal.find('#template-body').val(data.body)
+            $update_modal.find('#name').val(data.name)
+            $update_modal.find('#description').val(data.description)
+            $update_modal.find('#region').val(data.region)
+            $update_modal.modal({show: true})
+          },
+          error: function (data) {
+            toastr.error(data)
+          }
+        })
+
+      })
+    </script>
+{% endblock %}

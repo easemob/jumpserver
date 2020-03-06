@@ -1,6 +1,7 @@
 # coding:utf-8
 from django.urls import path
 from rest_framework import routers
+from rest_framework_bulk.routes import BulkRouter
 
 from .. import api
 
@@ -12,6 +13,10 @@ router.register('rds', api.AliCloudRdsViewSet, 'rds')
 router.register('kvstore', api.AliCloudKvStoreViewSet, 'kvstore')
 router.register('slb', api.AliCloudSlbViewSet, 'slb')
 router.register('oss', api.AliCloudOssViewSet, 'oss')
+
+bulk_router = BulkRouter()
+bulk_router.register('template/ecs', api.EcsTemplateViewSet, 'ecs-template')
+bulk_router.register('template/ros', api.RosTemplateViewSet, 'ros-template')
 
 urlpatterns = [
     path('ecs/sync', api.AliCloudEcsSyncUpdate.as_view(), name='ecs-sync'),
@@ -39,6 +44,16 @@ urlpatterns = [
     path('nodes/tree/all/', api.BillingQueryNode.as_view(), name='billing-node-all-query'),
     path('billing/sync/', api.BillingQuerySyncTask.as_view(), name='billing-sync'),
     path('billing/node/query/', api.BillingQuery.as_view(), name='billing-query'),
+    path('aligateway/<str:region>/zones', api.AliCloudEcsZone.as_view(), name="gateway-zones"),
+    path('aligateway/<str:region>/<str:zone>/ecs/instanceTypes', api.AliCloudEcsInstanceType.as_view(),
+         name="gateway-instance-type"),
+    path('aligateway/<str:region>/images', api.AliCloudEcsImage.as_view(), name="gateway-images"),
+    path('aligateway/<str:region>/vpcs', api.AliCloudEcsVpc.as_view(), name="gateway-vpcs"),
+    path('aligateway/<str:region>/vpcs/<str:vpc>/vswitches', api.AliCloudEcsVswitch.as_view(),
+         name="gateway-vswitches"),
+    path('aligateway/<str:region>/sg', api.AliCloudEcsSecurityGroup.as_view(),
+         name="gateway-sg"),
+
 ]
 
-urlpatterns += router.urls
+urlpatterns += router.urls + bulk_router.urls

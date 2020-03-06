@@ -8,9 +8,11 @@ from celery import shared_task
 from django.db import transaction
 from django.db.models import Q
 
+# from alicloud.ali_utils import EcsClient
 from ops.celery.decorator import register_as_period_task
 from .models import *
-from assets.models import Node, Asset
+from assets.models import Node
+from assets.models import Asset as JAssets
 from .utils import AliCloudUtil
 from common.utils import get_logger, get_object_or_none
 from django.conf import settings
@@ -18,6 +20,7 @@ from django.conf import settings
 from apps.jumpserver.settings import CACHES
 from redis import Redis
 from aliyunsdkcore.acs_exception.exceptions import ServerException
+from common.tasks import send_mail_async
 
 logger = get_logger(__file__)
 
@@ -49,61 +52,50 @@ def sync_ecs_list_info_manual():
                 if v != '':
                     setattr(ecs, k, v)
             try:
-                if not ecs.nodes.exclude(key='1').first():
+                current_not_root_node = ecs.nodes.exclude(key='1').first()
+                if not current_not_root_node:
                     logger.info('update node for root node ecs')
                     node = auto_allocate_asset_node(info.get('instance_name'), 'ecs')
                     ecs.nodes.set([node])
+                else:
+                    node = current_not_root_node
                 ecs.save()
                 updated.append(info['instance_name'])
             except Exception as e:
                 failed.append('%s: %s' % (info['instance_name'], str(e)))
 
         if settings.AUTO_UPDATE_JUMPSERVER_ASSETS:
-            asset = get_object_or_none(Asset, number=info.get('instance_id'))
+            asset = get_object_or_none(JAssets, number=info.get('instance_id'))
             if not asset:
                 try:
                     with transaction.atomic():
                         hostname = info.get('instance_name')
-                        domain = None
-                        admin_user = None
-                        if settings.ENVIROMENT == 'PROD':
-                            if 'ebs' in hostname:
-                                domain = 'ebs'
-                                admin_user = 'ebs-console'
-                            elif 'vip6' in hostname:
-                                domain = 'vip6'
-                                admin_user = 'vip6-console'
-                            elif 'hsb' in hostname:
-                                domain = 'hsb'
-                                admin_user = 'hsb-console'
-                            elif 'vip5' in hostname:
-                                domain = 'vip5'
-                                admin_user = 'vip6-console'
-                            elif 'usa' in hostname:
-                                domain = 'osu'
-                                admin_user = 'usa-console'
-                            else:
-                                domain = None
-                                admin_user = None
+                        admin_user, domain = auto_get_admin_and_domain(hostname)
                         attr = {
-                            'number': 'instance_id',
+                            'number': info.get('instance_id'),
                             'ip': info.get('inner_ip'),
                             'port': 3299,
+                            'protocol': 'ssh',
+                            'protocols': 'ssh/3299',
                             'hostname': hostname,
                             'platform': 'Linux',
                             'domain': domain,
                             'admin_user': admin_user
                         }
-                        asset = Asset.objects.create(**attr)
+                        logger.info('jumpserver asset create info {}'.format(attr))
+                        asset = JAssets.objects.create(**attr)
                         # need to add auto join node
                         asset.nodes.set([node])
                         j_created.append(info['instance_name'])
                 except Exception as e:
                     j_failed.append('%s: %s' % (info['instance_name'], str(e)))
             else:
-                setattr(ecs, 'hostname', info.get('hostname'))
+                setattr(asset, 'hostname', info.get('instance_name'))
+                setattr(asset, 'ip', info.get('inner_ip'))
                 try:
+                    logger.info('jumpserver asset %s append in %s node', asset, node)
                     asset.save()
+                    node.assets.add(asset)
                     j_updated.append(info['instance_name'])
                 except Exception as e:
                     j_failed.append('%s: %s' % (info['instance_name'], str(e)))
@@ -120,21 +112,76 @@ def sync_ecs_list_info_manual():
     }
     logger.info('ecs sync finish')
     logger.info(json.dumps(data))
-    j_data = {
-        'created': j_created,
-        'created_info': 'Created {}'.format(len(j_created)),
-        'updated': j_updated,
-        'updated_info': 'Updated {}'.format(len(j_updated)),
-        'failed': j_failed,
-        'failed_info': 'Failed {}'.format(len(j_failed)),
-        'valid': True,
-        'msg': 'Created: {}. Updated: {}, Error: {}'.format(
-            len(j_created), len(j_updated), len(j_failed))
-    }
-    logger.info('jump server asset update finish')
-    logger.info(json.dumps(j_data))
+    if settings.AUTO_UPDATE_JUMPSERVER_ASSETS:
+        clean_destory_assets_in_jumpserver()
+        j_data = {
+            'created': j_created,
+            'created_info': 'Created {}'.format(len(j_created)),
+            'updated': j_updated,
+            'updated_info': 'Updated {}'.format(len(j_updated)),
+            'failed': j_failed,
+            'failed_info': 'Failed {}'.format(len(j_failed)),
+            'valid': True,
+            'msg': 'Created: {}. Updated: {}, Error: {}'.format(
+                len(j_created), len(j_updated), len(j_failed))
+        }
+        logger.info('jump server asset update finish')
+        logger.info(json.dumps(j_data))
 
     return data
+
+
+# @shared_task
+# def create_alicloud_ecs(data, username, email):
+#     ecs_client = EcsClient()
+#     succeed, result = ecs_client.create_and_run_instance(**data)
+#     subject = '创建ECS结果'
+#     message = ''
+#     if succeed:
+#         message = f'<p style="color:green">创建成功, 实例id为:{result}</p>'
+#         template_id = data.pop('template')
+#         record = EcsCreateRecord.objects.create(result_ids=result, uid=username, **data)
+#         template = get_object_or_none(EcsTemplate, id=template_id)
+#         record.template = template
+#         record.save()
+#         create_ecs_info_from_alicoud(template, json.loads(result))
+#     else:
+#         message = f'<p style="color:red">创建失败, 错误信息为:{result}</p>'
+#     send_mail_async.delay(subject, message, [email], html_message=message)
+
+
+@shared_task
+def create_ecs_info_from_alicoud(template, id_list):
+    # wait alicloud update api return
+    time.sleep(10)
+    ali_util = AliCloudUtil()
+    for info in ali_util.get_ecs_instances(instanceIds=id_list):
+        logger.info(json.dumps(info))
+        try:
+            with transaction.atomic():
+                ecs = Ecs.objects.create(**info)
+                ecs.nodes.set(template.nodes.all())
+                ecs.save()
+                logger.info('ali ecs create info {}'.format(info))
+                if settings.AUTO_UPDATE_JUMPSERVER_ASSETS:
+                    attr = {
+                        'number': info.get('instance_id'),
+                        'ip': info.get('inner_ip'),
+                        'port': 3299,
+                        'protocol': 'ssh',
+                        'protocols': 'ssh/3299',
+                        'hostname': info.get('instance_name'),
+                        'platform': 'Linux',
+                        'domain': template.domain,
+                        'admin_user': template.admin_user
+                    }
+                    logger.info('jumpserver asset create info {}'.format(attr))
+                    asset = JAssets.objects.create(**attr)
+                    print(template.nodes)
+                    asset.nodes.set(template.nodes.all())
+                    asset.save()
+        except Exception as e:
+            logger.error('%s: %s' % (info['instance_name'], str(e)))
 
 
 @shared_task
@@ -338,9 +385,38 @@ def sync_oss_list_info_manual():
     return data
 
 
+def auto_get_admin_and_domain(name):
+    admin_user, domain = None, None
+    logger.info('try to auto get amdin_user and domain with {}'.format(name))
+    search_name_list = re.split('-|_', name)
+    search_name = name
+    if len(search_name_list) > 1:
+        search_name = name[name.index(search_name_list[1]):]
+    num_list = re.findall(r"\d+", search_name)
+    if len(num_list):
+        name = name[:name.index(num_list[-1])]
+    logger.info('try to find name {}'.format(name))
+    asset = JAssets.objects.filter(hostname__contains=name).exclude(
+        Q(admin_user=None) | Q(domain=None)).first()
+    if asset:
+        admin_user = asset.admin_user
+        domain = asset.doamin
+        logger.info('auto set {} admin_user:{} domain:{}'.format(name, admin_user, domain))
+    return admin_user, domain
+
+
+def clean_destory_assets_in_jumpserver():
+    destroy_assets = Ecs.objects.values("instance_id").filter(status='Destory')
+    JAssets.objects.filter(number__in=[asset.get('instance_id') for asset in destroy_assets]).delete()
+
+
 def auto_allocate_asset_node(name, asset_type):
     logger.info('auto allocate {} {}'.format(name, asset_type))
-    num_list = re.findall(r"\d+", name)
+    search_name_list = re.split('-|_', name)
+    search_name = name
+    if len(search_name_list) > 1:
+        search_name = name[name.index(search_name_list[1]):]
+    num_list = re.findall(r"\d+", search_name)
     if len(num_list):
         name = name[:name.index(num_list[-1])]
     logger.info('auto allocate find name {}'.format(name))
@@ -371,7 +447,7 @@ def auto_allocate_asset_node(name, asset_type):
 
 
 @shared_task
-@register_as_period_task(interval=3600*24)
+@register_as_period_task(interval=3600 * 24)
 def sync_billing_info_manual(bill_cycle=None, page_size=100):
     # check bill_cycle
     if not bill_cycle:
@@ -417,7 +493,7 @@ def sync_billing_info_manual(bill_cycle=None, page_size=100):
     logger.info(f'sync {bill_cycle} billing total count: {total_count}')
 
     for k in redis_con.sscan_iter(instance_key):
-        product_code, product_name, instance_id = str(k, encoding = "utf-8").strip("'").split('::')[-3:]
+        product_code, product_name, instance_id = str(k, encoding="utf-8").strip("'").split('::')[-3:]
         payment_amount = float(redis_con.get(k))
         row_data = {
             'instance_id': instance_id,
@@ -431,19 +507,26 @@ def sync_billing_info_manual(bill_cycle=None, page_size=100):
 
     logger.info(f'sync {bill_cycle} billing domian from overview start . ')
 
-    for domain in  ali_util.get_bill_overview(billing_cycle=bill_cycle, product_code="domain")['Data']['Items']['Item']:
-        row_data = {
-            'instance_id': bill_cycle + domain["ProductType"],
-            'cycle': bill_cycle,
-            'product_name': domain["ProductName"],
-            'product_code': domain["ProductCode"],
-            'payment_amount': domain["PaymentAmount"],
-            'defaults': dict(payment_amount=domain["PaymentAmount"])
-        }
-        Billing.objects.update_or_create(**row_data)
+    other_products = {
+        "域名": "domain",
+        "云虚拟主机": "hosting"
+    }
+
+    for pi in ali_util.get_bill_overview(billing_cycle=bill_cycle)['Data']['Items']['Item']:
+
+        if pi["ProductName"] in other_products.keys():
+            if "ProductCode" not in pi.keys():
+                pi["ProductCode"] = other_products[pi["ProductName"]]
+
+            row_data = {
+                'instance_id': bill_cycle + "-" + other_products[pi["ProductName"]],
+                'cycle': bill_cycle,
+                'product_code': pi["ProductCode"],
+                'defaults': dict(payment_amount=pi["PaymentAmount"], product_name=pi["ProductName"])
+            }
+            Billing.objects.update_or_create(**row_data)
 
     logger.info(f'sync {bill_cycle} billing domian from overview end . ')
 
     logger.info(f'sync {bill_cycle} billing success .')
     return True
-

@@ -69,6 +69,7 @@ INSTALLED_APPS = [
     'authentication.apps.AuthenticationConfig',  # authentication
     'applications.apps.ApplicationsConfig',
     'alicloud.apps.AlicloudConfig',
+    'didicloud.apps.DidicloudConfig',
     'rest_framework',
     'rest_framework_swagger',
     'drf_yasg',
@@ -425,6 +426,9 @@ ALY_ACCESS_SECRET = CONFIG.ALY_ACCESS_SECRET
 ALY_REGION_LIST = CONFIG.ALY_REGION_LIST
 ENVIROMENT = CONFIG.ENVIROMENT
 AUTO_UPDATE_JUMPSERVER_ASSETS = CONFIG.AUTO_UPDATE_JUMPSERVER_ASSETS
+
+# DIDI settings
+DIDI_ACCESS_TOKEN = CONFIG.DIDI_ACCESS_TOKEN
 
 # Auth LDAP settings
 AUTH_LDAP = False

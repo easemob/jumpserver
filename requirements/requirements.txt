@@ -1,8 +1,9 @@
 aliyun-python-sdk-bssopenapi==1.2.8
 aliyun-python-sdk-core-v3==2.13.3
-aliyun-python-sdk-ecs==4.10.1
+aliyun-python-sdk-ecs==4.17.8
 aliyun-python-sdk-r-kvstore==2.1.1
 aliyun-python-sdk-rds==2.3.9
+aliyun-python-sdk-ros==3.1.0
 aliyun-python-sdk-slb==3.2.10
 amqp==2.1.4
 ansible==2.8.0
@@ -109,3 +110,5 @@ urllib3==1.25.2
 vine==1.1.4
 Werkzeug==0.14.1
 arrow==0.14.4
+grpcio==1.16.0
+protobuf==3.6.1

@@ -6,3 +6,5 @@ from .slb import *
 from .rds import *
 from .oss import *
 from .billing import *
+from .ali_gateway import *
+from .ros import *
