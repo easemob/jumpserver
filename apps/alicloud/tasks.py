@@ -422,10 +422,8 @@ def sync_billing_info_manual(bill_cycle=None, page_size=100):
         row_data = {
             'instance_id': instance_id,
             'cycle': bill_cycle,
-            'product_name': product_name,
             'product_code': product_code,
-            'payment_amount': payment_amount,
-            'defaults': dict(payment_amount=payment_amount)
+            'defaults': dict(payment_amount=payment_amount, product_name=product_name)
         }
         Billing.objects.update_or_create(**row_data)
         redis_con.delete(k)
