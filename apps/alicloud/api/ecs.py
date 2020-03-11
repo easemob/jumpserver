@@ -27,7 +27,9 @@ class AliCloudEcsSyncUpdate(APIView):
 
 
 class AliCloudEcsViewSet(mixins.CreateModelMixin, ReadOnlyModelViewSet):
-    filter_fields = ("instance_name", "instance_id", "inner_ip", "public_ip", 'status', "region", "zone")
+    filter_fields = (
+        "instance_name", "instance_id", "inner_ip", "public_ip", 'status', "region", "zone", "network_type",
+        "instance_type")
     search_fields = filter_fields
     ordering_fields = ("instance_name", "inner_ip", "cpu", "memory", 'status', 'expired_time')
     queryset = Ecs.objects.all()
