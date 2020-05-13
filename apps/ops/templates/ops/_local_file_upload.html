@@ -1,0 +1,64 @@
+{% extends '_modal.html' %}
+{% load i18n %}
+{% load static %}
+
+{% block modal_class %}modal-lg{% endblock %}
+{% block modal_id %}local_file_upload_modal{% endblock %}
+{% block modal_title %}{% trans "File Upload" %}{% endblock %}
+{% block modal_body %}
+    <link href="{% static 'css/plugins/fileinput/fileinput.min.css' %}" rel="stylesheet">
+    <script src="{% static 'js/plugins/fileinput/fileinput.min.js' %}"></script>
+    <style>
+        .inmodal .modal-header {
+            padding: 10px 10px;
+            text-align: center;
+        }
+
+    </style>
+
+    <div class="wrapper wrapper-content">
+        <div class="row">
+            <div class="file-loading">
+                <input id="local-file" name="local-file" multiple type="file">
+            </div>
+            <div id="kartik-file-errors"></div>
+        </div>
+    </div>
+
+    <script>
+
+      function initFileUpload() {
+        $('#local-file').fileinput({
+          showPreview: true,
+          elErrorContainer: '#kartik-file-errors',
+          showUpload: false,
+          maxFileCount: 1,
+          autoOrientImage: false,
+          msgPlaceholder: '选择本地文件上传',
+          showCaption: true,
+          uploadUrl: "{% url 'api-ops:file-upload' %}",
+          deleteUrl: "{% url 'api-ops:file-delete' %}",
+          ajaxSettings: {
+            headers: {"X-CSRFToken": getCookie('csrftoken')}
+          }
+          {#allowedFileExtensions: ['sh', 'py'],#}
+        })
+      }
+
+      $(document).ready(function () {
+        initFileUpload()
+      }).on('show.bs.modal', function () {
+
+      }).on('click', '#btn_local_file_upload_modal_confirm', function () {
+        $('#local_file_upload_modal').modal('hide');
+      })
+    </script>
+{% endblock %}
+
+{% block modal_button %}
+    {{ block.super }}
+{% endblock %}
+{% block modal_confirm_id %}btn_local_file_upload_modal_confirm{% endblock %}
+
+
+

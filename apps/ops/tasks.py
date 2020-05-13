@@ -9,6 +9,7 @@ from celery.exceptions import SoftTimeLimitExceeded
 from django.utils import timezone
 
 from common.utils import get_logger, get_object_or_none
+from ops.models.task import FileDeployExecution
 from .celery.decorator import (
     register_as_period_task, after_app_shutdown_clean_periodic,
     after_app_ready_start
@@ -52,9 +53,21 @@ def run_command_execution(cid, **kwargs):
         logger.error("Not found the execution id: {}".format(cid))
 
 
+@shared_task(soft_time_limit=600)
+def run_file_deploy_execution(tid, **kwargs):
+    execution = get_object_or_none(FileDeployExecution, id=tid)
+    if execution:
+        try:
+            execution.run()
+        except SoftTimeLimitExceeded:
+            logger.error("Run time out")
+    else:
+        logger.error("Not found the execution id: {}".format(tid))
+
+
 @shared_task
 @after_app_shutdown_clean_periodic
-@register_as_period_task(interval=3600*24)
+@register_as_period_task(interval=3600 * 24)
 def clean_tasks_adhoc_period():
     logger.debug("Start clean task adhoc and run history")
     tasks = Task.objects.all()
@@ -67,7 +80,7 @@ def clean_tasks_adhoc_period():
 
 @shared_task
 @after_app_shutdown_clean_periodic
-@register_as_period_task(interval=3600*24)
+@register_as_period_task(interval=3600 * 24)
 def clean_celery_tasks_period():
     expire_days = 30
     logger.debug("Start clean celery task history")

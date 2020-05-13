@@ -1,0 +1,244 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load i18n %}
+{% load bootstrap3 %}
+
+{% block custom_head_css_js %}
+    <link rel="stylesheet" href="{% static 'js/plugins/xterm/xterm.css' %}"/>
+    <link href="{% static 'css/plugins/codemirror/codemirror.css' %}" rel="stylesheet">
+    <link href="{% static 'css/plugins/codemirror/ambiance.css' %}" rel="stylesheet">
+    <link href="{% static 'css/plugins/select2/select2.min.css' %}" rel="stylesheet">
+    <script src="{% static 'js/jquery.form.min.js' %}"></script>
+    <script src="{% static 'js/plugins/xterm/xterm.js' %}"></script>
+    <script src="{% static 'js/plugins/xterm/addons/fit/fit.js' %}"></script>
+    <script src="{% static 'js/plugins/codemirror/codemirror.js' %}"></script>
+    <script src="{% static 'js/plugins/codemirror/mode/shell/shell.js' %}"></script>
+    <script src="{% static 'js/plugins/select2/select2.full.min.js' %}"></script>
+    <style type="text/css">
+        .xterm .xterm-screen canvas {
+            position: absolute;
+            left: 0;
+            top: 0;
+            padding: 10px;
+        }
+
+        .select2-container .select2-selection--single {
+            height: 34px;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <div class="wrapper wrapper-content">
+        <div class="col-lg-12 animated fadeInRight" id="split-right">
+            <div class="ibox float-e-margins">
+                <div class="ibox-title">
+                    <h5>
+                        创建文件分发
+                    </h5>
+                    <div class="ibox-tools">
+                        <a class="collapse-link">
+                            <i class="fa fa-chevron-up"></i>
+                        </a>
+                        <a class="dropdown-toggle" data-toggle="dropdown" href="#">
+                            <i class="fa fa-wrench"></i>
+                        </a>
+                        <a class="close-link">
+                            <i class="fa fa-times"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="ibox-content">
+
+                    <form id="task-form" method="post" action="" class="form-horizontal">
+                        {% csrf_token %}
+                        <div class="form-group required">
+                            <label for="jobname" class="col-sm-2 control-label">作业名称</label>
+                            <div class="col-sm-9">
+                                <input required="true" type="text" class="form-control" name="name" id="jobname"
+                                       placeholder="作业名称">
+                            </div>
+                        </div>
+
+                        <div class="form-group required">
+                            <label class="col-sm-2 control-label">源文件</label>
+                            <div class="col-sm-9">
+                                <button id="btn-upload-local-file" type="button" class="btn btn-default">
+                                    <span class="glyphicon glyphicon-upload"> 本地文件</span>
+                                </button>
+                                <button id="btn-select-server-file" class="btn btn-default" type="button">
+                                    <span class="glyphicon glyphicon-cloud"> 服务器文件</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="col-sm-2 control-label">源文件信息</label>
+                            <div class="col-sm-9">
+                                <table id="source-file-info-table" class="table table-striped">
+                                    <tr>
+                                        <th>文件列表</th>
+                                        <th>服务器地址</th>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+
+
+                        <div class="form-group required">
+                            <label class="col-sm-2 control-label">选择目标服务器</label>
+                            <div class="col-sm-9 ">
+                                <button id="btn-assets-select" type="button" class="btn btn-sm btn-primary">服务器列表
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="col-sm-2 control-label">目标机器信息</label>
+                            <div class="col-sm-9">
+                                <table id="target-asset-info-table" class="table table-striped">
+                                    <tr>
+                                        <th>机器名</th>
+                                        <th>ip</th>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="form-group required">
+                            <label class="col-sm-2 control-label">执行用户</label>
+                            <div class="col-sm-9 ">
+                                <select name="run_as" class="form-control">
+                                    {% for user in system_user %}
+                                        <option value="{{ user.id }}">{{ user.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group required">
+                            <label class="col-sm-2 control-label">目标路径</label>
+                            <div class="col-sm-9 ">
+                                <input name="dest" type="text" class="form-control" value="/data/">
+                            </div>
+                        </div>
+                        <div class="form-group required">
+                            <label class="col-sm-2 control-label">mode权限</label>
+                            <div class="col-sm-9 ">
+                                <input name="mode" type="text" class="form-control" value="0644">
+                            </div>
+                        </div>
+                        <div class="form-group required">
+                            <label class="col-sm-2 control-label">group组</label>
+                            <div class="col-sm-9 ">
+                                <input name="group" type="text" class="form-control" value="easemob">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-sm-9 col-sm-offset-2">
+                                <button style="width:100%" class="btn btn-primary" type="submit">提 交</button>
+                            </div>
+                        </div>
+
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% include 'ops/_asset_list_modal.html' %}
+    {% include 'ops/_local_file_upload.html' %}
+    {% include 'ops/_server_file_select.html' %}
+{% endblock %}
+
+{% block custom_foot_js %}
+    <script>
+      var systemUserId = null;
+      var term = null;
+      var current_id = 0
+      var file_id_map = {}
+      var target_assets_id = []
+
+      function removeLine() {
+        console.log('button remove')
+        console.log($(this))
+        $(this).parent().parent().remove()
+      }
+
+      $(document).ready(function () {
+
+      }).on('click', '#btn-assets-select', function () {
+        $('#asset_list_modal').modal('show');
+      }).on('click', '#btn-upload-local-file', function () {
+        $('#local_file_upload_modal').modal('show');
+      }).on('click', '#btn-select-server-file', function () {
+        $('#server_file_select_modal').modal('show');
+      }).on('click', '#btn_asset_modal_confirm', function () {
+        var $table = $('#target-asset-info-table')
+        target_assets_id = asset_table2.selected;
+        var assets_rows = asset_table2.selected_rows;
+        var html = ''
+        $table.find('.asset-info').remove()
+        assets_rows.forEach(function (asset) {
+          html += `<tr class="asset-info"><td>${asset.hostname} </td><td>${asset.ip}</td></tr>`
+        })
+        $('#asset_list_modal').modal('hide');
+        asset_table2.selected = [];
+        asset_table2.selected_rows = [];
+        asset_table2.ajax.reload();
+        $table.append(html)
+        console.log(target_assets_id)
+
+      }).on('fileuploaded', '#local-file', function (event, data, previewId, index) {
+        var info = data.response
+        var tmp_id = `source-file-${current_id}`
+        file_id_map[info.filename] = current_id
+        current_id += 1
+        var html = `<tr id=${tmp_id}><td>${info.filename} </td><td class="source-file-path">${info.path}</td></tr>`
+        $('#source-file-info-table').append(html)
+      }).on('filesuccessremove', '#local-file', function (event, id, index) {
+        var name = id.slice(id.indexOf('_') + 1)
+        var tmp_id = `#source-file-${file_id_map[name]}`
+        console.log(tmp_id)
+        $(tmp_id).remove()
+      }).on('click', '#btn_server_file_select_modal_confirm', function () {
+        $('#source-file-info-table .tr-server-source-file').empty()
+        var html = ''
+        $.each($('#server-file-form input.server-file'), function () {
+          console.log(this)
+          var $input = $(this)
+          var file_path = $input.val()
+          console.log(file_path)
+          var filename = file_path.slice(file_path.lastIndexOf('/') + 1)
+          html += `<tr class="tr-server-source-file"><td>${filename} </td><td class="source-file-path">${file_path}</td></tr>`
+        })
+        $('#source-file-info-table').append(html)
+        $('#server_file_select_modal').modal('hide');
+      }).on('submit', '#task-form', function (evt) {
+        evt.preventDefault();
+        var data = $(this).serializeObject();
+        data.hosts = target_assets_id
+        var source_path = []
+        $.each($('#source-file-info-table .source-file-path'), function () {
+          source_path.push($(this).text())
+        })
+        data.src_file_list = JSON.stringify(source_path)
+        console.log(data)
+        var url = '{% url "api-ops:file-deploy-executions-list" %}'
+        var props = {
+          url: url,
+          data: data,
+          method: 'POST',
+          form: $('#task-form'),
+          error: function (jqXHR) {
+            toastr.error(jqXHR.responseText)
+          },
+          success: function (resp) {
+            var log_url = resp.log_url;
+            window.open(log_url, '', 'width=800,height=600,left=400,top=400')
+            window.location.href = '{% url "ops:file-task-list" %}'
+          }
+        }
+        formSubmit(props);
+      })
+    </script>
+{% endblock %}

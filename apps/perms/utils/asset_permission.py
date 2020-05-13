@@ -27,6 +27,7 @@ logger = get_logger(__file__)
 __all__ = [
     'AssetPermissionUtil', 'is_obj_attr_has', 'sort_assets',
     'parse_asset_to_tree_node', 'parse_node_to_tree_node',
+    'parse_node_to_tree_node_without_amount'
 ]
 
 
@@ -547,6 +548,28 @@ def sort_assets(assets, order_by='hostname', reverse=False):
 
 def parse_node_to_tree_node(node):
     name = '{} ({})'.format(node.value, node.assets_amount)
+    data = {
+        'id': node.key,
+        'name': name,
+        'title': name,
+        'pId': node.parent_key,
+        'isParent': True,
+        'open': node.is_root(),
+        'meta': {
+            'node': {
+                "id": node.id,
+                "key": node.key,
+                "value": node.value,
+            },
+            'type': 'node'
+        }
+    }
+    tree_node = TreeNode(**data)
+    return tree_node
+
+
+def parse_node_to_tree_node_without_amount(node):
+    name = '{}'.format(node.value)
     data = {
         'id': node.key,
         'name': name,

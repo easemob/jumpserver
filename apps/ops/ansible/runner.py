@@ -13,17 +13,16 @@ from ansible.executor.playbook_executor import PlaybookExecutor
 from ansible.playbook.play import Play
 import ansible.constants as C
 
+from ops.ansible.arguments import CopyArguments, GetUrlArguments
 from .callback import (
-    AdHocResultCallback, PlaybookResultCallBack, CommandResultCallback
-)
+    AdHocResultCallback, PlaybookResultCallBack, CommandResultCallback,
+    CopyResultCallback, GetUrlResultCallback)
 from common.utils import get_logger
-from .exceptions import AnsibleError
+from .exceptions import AnsibleError, AnsibleModuleArgsError
 
-
-__all__ = ["AdHocRunner", "PlayBookRunner", "CommandRunner"]
+__all__ = ["AdHocRunner", "PlayBookRunner", "CommandRunner", "CopyRunner"]
 C.HOST_KEY_CHECKING = False
 logger = get_logger(__name__)
-
 
 Options = namedtuple('Options', [
     'listtags', 'listtasks', 'listhosts', 'syntax', 'connection',
@@ -48,6 +47,7 @@ def get_default_options():
         become_user=None,
         verbosity=1,
         check=False,
+        deprecation_warnings=False,
         diff=False,
         gathering='implicit',
         remote_tmp='/tmp/.ansible'
@@ -158,9 +158,9 @@ class AdHocRunner:
             if args.startswith('executable='):
                 _args = args.split(' ')
                 executable, command = _args[0].split('=')[1], ' '.join(_args[1:])
-                args = {'executable': executable, '_raw_params':  command}
+                args = {'executable': executable, '_raw_params': command}
             else:
-                args = {'_raw_params':  args}
+                args = {'_raw_params': args}
             return args
         else:
             return args
@@ -239,3 +239,29 @@ class CommandRunner(AdHocRunner):
         ]
         return self.run(tasks, pattern, play_name=cmd)
 
+
+class CopyRunner(AdHocRunner):
+    results_callback_class = CopyResultCallback
+
+    def copy(self, pattern, files_args=[]):
+        tasks = []
+        for arg in files_args:
+            if not isinstance(arg, CopyArguments):
+                raise AnsibleModuleArgsError("copy Module args is not correct")
+            args = dict(src=arg.src, dest=arg.dest, group=arg.group, mode=arg.mode)
+            tasks.append({"action": {"module": 'copy', "args": args}})
+        return self.run(tasks, pattern, play_name='Copy File')
+
+
+class GetUrlRunner(AdHocRunner):
+    results_callback_class = GetUrlResultCallback
+
+    def get(self, pattern, url_args=[]):
+        tasks = []
+        for arg in url_args:
+            if not isinstance(arg, GetUrlArguments):
+                raise AnsibleModuleArgsError("get_url Module args is not correct")
+            args = dict(url=arg.url, dest=arg.dest, mode=arg.mode, username=arg.username, password=arg.password)
+            tasks.append({"action": {"module": 'get_url', "args": args}})
+        print(tasks)
+        return self.run(tasks, pattern, play_name='Copy File')
