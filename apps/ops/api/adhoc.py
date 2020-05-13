@@ -72,8 +72,3 @@ class AdHocRunHistoryViewSet(viewsets.ModelViewSet):
             adhoc = get_object_or_404(AdHoc, id=adhoc_id)
             self.queryset = self.queryset.filter(adhoc=adhoc)
         return self.queryset
-
-
-
-
-

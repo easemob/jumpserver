@@ -17,7 +17,7 @@ from common.tree import TreeNodeSerializer
 from common.utils import get_logger
 from ..utils import (
     AssetPermissionUtil, parse_asset_to_tree_node, parse_node_to_tree_node,
-)
+    parse_node_to_tree_node_without_amount)
 from ..hands import User, Asset, Node, SystemUser, NodeSerializer
 from .. import serializers, const
 from ..mixins import AssetsFilterMixin
@@ -261,15 +261,19 @@ class UserGrantedNodesWithAssetsAsTreeApi(UserPermissionCacheMixin, ListAPIView)
             util.filter_permissions(
                 system_users=self.system_user_id
             )
-        nodes = util.get_nodes_with_assets()
-        for node, assets in nodes.items():
-            data = parse_node_to_tree_node(node)
-            queryset.append(data)
-            if not self.show_assets:
-                continue
-            for asset, system_users in assets.items():
-                data = parse_asset_to_tree_node(node, asset, system_users)
+        if not self.show_assets:
+            nodes = util.get_nodes()
+            for node in nodes:
+                data = parse_node_to_tree_node_without_amount(node)
                 queryset.append(data)
+        else:
+            nodes = util.get_nodes_with_assets()
+            for node, assets in nodes.items():
+                data = parse_node_to_tree_node(node)
+                queryset.append(data)
+                for asset, system_users in assets.items():
+                    data = parse_asset_to_tree_node(node, asset, system_users)
+                    queryset.append(data)
         queryset = sorted(queryset)
         return queryset
 
@@ -295,11 +299,15 @@ class UserGrantedNodeAssetsApi(UserPermissionCacheMixin, AssetsFilterMixin, List
         user = self.get_object()
         node_id = self.kwargs.get('node_id')
         util = AssetPermissionUtil(user, cache_policy=self.cache_policy)
+        if node_id is None:
+            node_id = self.request.query_params.get('node_id')
         nodes = util.get_nodes_with_assets()
         if str(node_id) == const.UNGROUPED_NODE_ID:
             node = util.tree.ungrouped_node
         elif str(node_id) == const.EMPTY_NODE_ID:
             node = util.tree.empty_node
+        elif not node_id:
+            node = util.tree.root_node
         else:
             node = get_object_or_404(Node, id=node_id)
         if node == util.tree.root_node:
@@ -406,7 +414,7 @@ class UserGrantedNodeChildrenApi(UserPermissionCacheMixin, ListAPIView):
 
 class ValidateUserAssetPermissionApi(UserPermissionCacheMixin, APIView):
     permission_classes = (IsOrgAdminOrAppUser,)
-    
+
     def get(self, request, *args, **kwargs):
         user_id = request.query_params.get('user_id', '')
         asset_id = request.query_params.get('asset_id', '')

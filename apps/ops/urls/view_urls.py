@@ -21,4 +21,8 @@ urlpatterns = [
 
     path('command-execution/', views.CommandExecutionListView.as_view(), name='command-execution-list'),
     path('command-execution/start/', views.CommandExecutionStartView.as_view(), name='command-execution-start'),
+
+    path('file-task/', views.FileTaskListView.as_view(), name='file-task-list'),
+
+    path('file-task/create', views.FileTaskCreateView.as_view(), name='file-task-create')
 ]

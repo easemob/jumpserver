@@ -60,6 +60,7 @@ class AdHocResultCallback(CallbackMixin, CallbackModule, CMDCallBackModule):
     """
     Task result Callback
     """
+
     def clean_result(self, t, host, task_name, task_result):
         contacted = self.results_summary["contacted"]
         dark = self.results_summary["dark"]
@@ -95,8 +96,8 @@ class AdHocResultCallback(CallbackMixin, CallbackModule, CMDCallBackModule):
 
         if result._task.action in C.MODULE_NO_JSON:
             CMDCallBackModule.v2_runner_on_failed(self,
-                result, ignore_errors=ignore_errors
-            )
+                                                  result, ignore_errors=ignore_errors
+                                                  )
         else:
             super().v2_runner_on_failed(
                 result, ignore_errors=ignore_errors
@@ -140,6 +141,7 @@ class CommandResultCallback(AdHocResultCallback):
       "delta": 0:0:0.123
     }
     """
+
     def __init__(self, display=None, **kwargs):
 
         self.results_command = dict()
@@ -296,4 +298,64 @@ class PlaybookResultCallBack(CallbackBase):
         self.gather_item_result(res)
 
 
+class CopyResultCallback(CommandResultCallback):
 
+    def gather_cmd(self, t, res):
+        host = res._host.get_name()
+        if not self.results_command.get(host):
+            self.results_command[host] = []
+            self.results_command[host]
+        cmd = {}
+        if t == "ok":
+            cmd['changed'] = res._result.get('changed')
+            cmd['checksum'] = res._result.get('checksum')
+            cmd['dest'] = res._result.get('dest')
+            cmd['gid'] = res._result.get('gid')
+            cmd['group'] = res._result.get('group')
+            cmd['mode'] = res._result.get('mode')
+            cmd['owner'] = res._result.get('owner')
+            cmd['size'] = res._result.get('size')
+            cmd['host'] = host
+            cmd['error'] = False
+        else:
+            cmd['error'] = True
+            cmd['msg'] = "Error: " + res._result.get('msg')
+        self.results_command[host].append(cmd)
+
+    def v2_runner_on_ok(self, res, **kwargs):
+        super().v2_runner_on_ok(res)
+        color = C.COLOR_OK
+        if res._result.get('changed'):
+            color = C.COLOR_CHANGED
+        cmd = dict()
+        cmd['changed'] = res._result.get('changed')
+        cmd['checksum'] = res._result.get('checksum')
+        cmd['dest'] = res._result.get('dest')
+        cmd['gid'] = res._result.get('gid')
+        cmd['group'] = res._result.get('group')
+        cmd['mode'] = res._result.get('mode')
+        cmd['owner'] = res._result.get('owner')
+        cmd['size'] = res._result.get('size')
+
+        self._display.display(json.dumps(cmd, indent=4), color=color)
+
+
+class GetUrlResultCallback(CommandResultCallback):
+
+    def gather_cmd(self, t, res):
+        host = res._host.get_name()
+        cmd = {}
+        if t == "ok":
+            cmd['changed'] = res._result.get('changed')
+            cmd['url'] = res._result.get('url')
+            cmd['checksum'] = res._result.get('checksum')
+            cmd['dest'] = res._result.get('dest')
+            cmd['gid'] = res._result.get('gid')
+            cmd['group'] = res._result.get('group')
+            cmd['mode'] = res._result.get('mode')
+            cmd['owner'] = res._result.get('owner')
+            cmd['size'] = res._result.get('size')
+            cmd['host'] = host
+        else:
+            cmd['err'] = "Error: {}".format(res)
+        self.results_command[host + cmd.get('dest')] = cmd

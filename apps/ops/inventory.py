@@ -9,7 +9,6 @@ __all__ = [
     'JMSInventory', 'JMSCustomInventory',
 ]
 
-
 logger = get_logger(__file__)
 
 
@@ -31,7 +30,7 @@ class JMSBaseInventory(BaseInventory):
             if asset.is_unixlike():
                 info["become"] = asset.admin_user.become_info
         for node in asset.nodes.all():
-            info["groups"].append(node.value)
+            info["groups"].append(node.value.replace('-', '_'))
         if asset.is_windows():
             info["vars"].update({
                 "ansible_connection": "ssh",
@@ -45,7 +44,7 @@ class JMSBaseInventory(BaseInventory):
             info["vars"].update({
                 "domain": asset.domain.name,
             })
-            info["groups"].append("domain_"+asset.domain.name)
+            info["groups"].append("domain_" + asset.domain.name.replace('-', '_'))
         return info
 
     @staticmethod
@@ -77,6 +76,7 @@ class JMSInventory(JMSBaseInventory):
     write you own manager, construct you inventory,
     user_info  is obtained from admin_user or asset_user
     """
+
     def __init__(self, assets, run_as_admin=False, run_as=None, become_info=None):
         """
         :param assets: assets
@@ -99,7 +99,6 @@ class JMSInventory(JMSBaseInventory):
             if become_info and asset.is_unixlike():
                 host.update(become_info)
             host_list.append(host)
-
         super().__init__(host_list=host_list)
 
     def get_run_user_info(self, host):

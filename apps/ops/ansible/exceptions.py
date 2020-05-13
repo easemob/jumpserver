@@ -2,9 +2,14 @@
 #
 
 __all__ = [
-    'AnsibleError'
+    'AnsibleError',
+    'AnsibleModuleArgsError'
 ]
 
 
 class AnsibleError(Exception):
+    pass
+
+
+class AnsibleModuleArgsError(AnsibleError):
     pass

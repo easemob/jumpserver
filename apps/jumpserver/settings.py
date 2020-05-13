@@ -26,6 +26,7 @@ sys.path.append(PROJECT_DIR)
 
 CONFIG = load_user_config()
 LOG_DIR = os.path.join(PROJECT_DIR, 'logs')
+UPLOAD_DIR = os.path.join(PROJECT_DIR, 'data/upload')
 JUMPSERVER_LOG_FILE = os.path.join(LOG_DIR, 'jumpserver.log')
 ANSIBLE_LOG_FILE = os.path.join(LOG_DIR, 'ansible.log')
 GUNICORN_LOG_FILE = os.path.join(LOG_DIR, 'gunicorn.log')
@@ -33,6 +34,8 @@ VERSION = const.VERSION
 
 if not os.path.isdir(LOG_DIR):
     os.makedirs(LOG_DIR)
+if not os.path.isdir(UPLOAD_DIR):
+    os.makedirs(UPLOAD_DIR)
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.10/howto/deployment/checklist/
@@ -112,7 +115,6 @@ MIDDLEWARE = [
     'jumpserver.middleware.RequestMiddleware',
     'orgs.middleware.OrgMiddleware',
 ]
-
 
 ROOT_URLCONF = 'jumpserver.urls'
 
