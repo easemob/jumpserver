@@ -1,46 +1,35 @@
 # -*- coding: utf-8 -*-
-from django.db import transaction
 from django.utils import timezone
-from rest_framework import viewsets
 from rest_framework.pagination import LimitOffsetPagination
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
-from common.mixins import DatetimeSearchMixin
-from common.permissions import IsOrgAdminOrAppUser, IsValidUser
-from ops.models import Task
-from ops.models.task import FileDeployExecution
-from ops.serializers import TaskSerializer, FileDeployExecutionSerializer
+from common.permissions import IsValidUser
+from common.utils import get_object_or_none
+from ops.models import TaskMeta, TaskExecution
+from ops.serializer import TaskMetaSerializer, TaskExecutionSerializer
 from orgs.mixins import OrgBulkModelViewSet
-from ops.tasks import run_file_deploy_execution
+from ops.tasks import manual_execute_task
 
 __all__ = [
-    'TaskTemplateViewSet',
-    'FileDeployExecutionViewSet'
+    'TaskManagementViewSet',
+    'TaskExecute',
+    'TaskExecutionViewSet'
 ]
 
 
-class TaskTemplateViewSet(OrgBulkModelViewSet):
-    queryset = Task.objects.all()
-    serializer_class = TaskSerializer
+class TaskManagementViewSet(OrgBulkModelViewSet):
+    queryset = TaskMeta.objects.all()
+    serializer_class = TaskMetaSerializer
     filter_fields = ('name',)
     search_fields = filter_fields
-    ordering_fields = ('-date_created',)
-    pagination_class = LimitOffsetPagination
-    permission_classes = (IsOrgAdminOrAppUser,)
-
-
-class FileDeployExecutionViewSet(OrgBulkModelViewSet):
-    queryset = FileDeployExecution.objects.all()
-    serializer_class = FileDeployExecutionSerializer
-    filter_fields = ('name',)
-    search_fields = filter_fields
-    ordering_fields = ('-date_created')
+    ordering_fields = ('date_created',)
     pagination_class = LimitOffsetPagination
     permission_classes = (IsValidUser,)
     date_format = '%Y-%m-%d'
 
-    def _get_queryset(self):
+    def _date_filter_queryset(self):
         queryset = super().get_queryset()
-        user = self.request.query_params.get('user')
         date_from_s = self.request.query_params.get('date_from')
         date_to_s = self.request.query_params.get('date_to')
         date_from = date_to = ''
@@ -61,21 +50,48 @@ class FileDeployExecutionViewSet(OrgBulkModelViewSet):
         else:
             date_to = timezone.now()
         if date_from:
-            queryset = queryset.filter(date_start__gte=date_from)
+            queryset = queryset.filter(date_created__gte=date_from)
         if date_to:
-            queryset = queryset.filter(date_start__lte=date_to)
-        if user:
-            queryset = queryset.filter(user=user)
+            queryset = queryset.filter(date_created__lte=date_to)
+        return queryset
+
+    def _filter_task_type(self, queryset):
+        task_type = self.request.query_params.get('task_type')
+        if task_type:
+            queryset.filter(task_type=self.request.query_params.get('task_type'))
         return queryset
 
     def get_queryset(self):
-        queryset = self._get_queryset()
+        queryset = self._date_filter_queryset()
+        queryset = self._filter_task_type(queryset)
         return queryset
 
-    def perform_create(self, serializer):
-        instance = serializer.save()
-        instance.user = self.request.user
-        instance.save()
-        transaction.on_commit(lambda: run_file_deploy_execution.apply_async(
-            args=(instance.id,), task_id=str(instance.id)
-        ))
+
+class TaskExecutionViewSet(OrgBulkModelViewSet):
+    queryset = TaskExecution.objects.all()
+    serializer_class = TaskExecutionSerializer
+    filter_fields = ('execute_user', '_arguments_data')
+    search_fields = filter_fields
+    ordering_fields = ('date_start',)
+    pagination_class = LimitOffsetPagination
+    permission_classes = (IsValidUser,)
+
+    def filter_queryset(self, queryset):
+        queryset = super().filter_queryset(queryset)
+        task_meta_id = self.request.query_params.get('task')
+        queryset = queryset.filter(task_meta=task_meta_id)
+        return queryset
+
+
+class TaskExecute(APIView):
+    permission_classes = (IsValidUser,)
+    allow_methods = ('post',)
+
+    def post(self, request, *args, **kwargs):
+        task_meta = get_object_or_none(TaskMeta, id=request.data.get('task_meta_id'))
+        task = task_meta.task_info
+        arguments_data = request.data.get('arguments_data')
+        # manual_execute_task(task, arguments_data, request.user.username)
+        # return Response({"task": task.id})
+        t = manual_execute_task.delay(task, arguments_data, request.user.username)
+        return Response({"task": t.id})

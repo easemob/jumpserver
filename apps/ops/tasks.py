@@ -9,7 +9,6 @@ from celery.exceptions import SoftTimeLimitExceeded
 from django.utils import timezone
 
 from common.utils import get_logger, get_object_or_none
-from ops.models.task import FileDeployExecution
 from .celery.decorator import (
     register_as_period_task, after_app_shutdown_clean_periodic,
     after_app_ready_start
@@ -41,6 +40,15 @@ def run_ansible_task(tid, callback=None, **kwargs):
         logger.error("No task found")
 
 
+@shared_task
+def manual_execute_task(task, arguments_data, execute_user):
+    if task:
+        result = task.manual_run(arguments_data, execute_user)
+        return result
+    else:
+        logger.error("No task found")
+
+
 @shared_task(soft_time_limit=60)
 def run_command_execution(cid, **kwargs):
     execution = get_object_or_none(CommandExecution, id=cid)
@@ -51,18 +59,6 @@ def run_command_execution(cid, **kwargs):
             logger.error("Run time out")
     else:
         logger.error("Not found the execution id: {}".format(cid))
-
-
-@shared_task(soft_time_limit=600)
-def run_file_deploy_execution(tid, **kwargs):
-    execution = get_object_or_none(FileDeployExecution, id=tid)
-    if execution:
-        try:
-            execution.run()
-        except SoftTimeLimitExceeded:
-            logger.error("Run time out")
-    else:
-        logger.error("Not found the execution id: {}".format(tid))
 
 
 @shared_task

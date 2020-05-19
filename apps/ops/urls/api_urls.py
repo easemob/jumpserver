@@ -15,11 +15,14 @@ router.register(r'adhoc', api.AdHocViewSet, 'adhoc')
 router.register(r'history', api.AdHocRunHistoryViewSet, 'history')
 router.register(r'command-executions', api.CommandExecutionViewSet, 'command-execution')
 bulk_router = BulkRouter()
-bulk_router.register('tasks-template', api.TaskTemplateViewSet, 'task-template')
-bulk_router.register(r'file-deploy-executions', api.FileDeployExecutionViewSet, 'file-deploy-executions')
+bulk_router.register(r'tasks-file-deploy', api.FileDeployTaskViewSet, 'task-file-deploy')
+bulk_router.register(r'tasks-management', api.TaskManagementViewSet, 'tasks-management')
+bulk_router.register(r'tasks-argument', api.TaskArgumentViewSet, 'task-argument')
+bulk_router.register(r'tasks-executions', api.TaskExecutionViewSet, 'task-execution')
 
 urlpatterns = [
     path('tasks/<uuid:pk>/run/', api.TaskRun.as_view(), name='task-run'),
+    path('tasks/run', api.TaskExecute.as_view(), name='task-execute'),
     path('celery/task/<uuid:pk>/log/', api.CeleryTaskLogApi.as_view(), name='celery-task-log'),
     path('celery/task/<uuid:pk>/result/', api.CeleryResultApi.as_view(), name='celery-result'),
     path('file/upload/', api.UploadFileApi.as_view(), name='file-upload'),
