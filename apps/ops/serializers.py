@@ -2,8 +2,6 @@
 from __future__ import unicode_literals
 from rest_framework import serializers
 from django.shortcuts import reverse
-
-from ops.models.task import FileDeployExecution
 from .models import Task, AdHoc, AdHocRunHistory, CommandExecution
 
 
@@ -83,34 +81,3 @@ class CommandExecutionSerializer(serializers.ModelSerializer):
     @staticmethod
     def get_log_url(obj):
         return reverse('api-ops:celery-task-log', kwargs={'pk': obj.id})
-
-
-class FileDeployExecutionSerializer(serializers.ModelSerializer):
-    log_url = serializers.SerializerMethodField(read_only=True)
-    username = serializers.SerializerMethodField(read_only=True)
-    hostname = serializers.SerializerMethodField(read_only=True)
-    is_success = serializers.SerializerMethodField(read_only=True)
-
-    class Meta:
-        model = FileDeployExecution
-        fields = '__all__'
-        read_only_fields = [
-            'result', 'is_finished', 'date_created',
-            'date_finished',
-        ]
-
-    @staticmethod
-    def get_log_url(obj):
-        return reverse('ops:celery-task-log', kwargs={'pk': obj.id})
-
-    @staticmethod
-    def get_username(obj):
-        return obj.user.name
-
-    @staticmethod
-    def get_is_success(obj):
-        return obj.is_success
-
-    @staticmethod
-    def get_hostname(obj):
-        return ','.join(obj.hosts.all().values_list('hostname', flat=True))

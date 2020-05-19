@@ -1,64 +1,58 @@
 # ~*~ coding: utf-8 ~*~
 
 from django.utils.translation import ugettext as _
-from django.views.generic import TemplateView, ListView
-
-from assets.models import SystemUser
+from django.views.generic import TemplateView, ListView, DetailView
 from common.mixins import DatetimeSearchMixin
 from common.permissions import PermissionsMixin, IsOrgAdmin
-from ops.models.task import FileDeployExecution
-from ..models import Task
+from ..models import Task, TaskMeta
 
 __all__ = [
-    'TaskTemplateListView',
-    'FileTaskCreateView',
-    'FileTaskListView'
+    'TaskManagementListView',
+    'TaskDetailInfoView',
+    'TaskExecutionHistoryView'
 ]
 
 
-class TaskTemplateListView(PermissionsMixin, ListView):
-    model = Task
-    ordering = ('-date_created',)
-    template_name = 'ops/task_template.html'
+class TaskManagementListView(PermissionsMixin, DatetimeSearchMixin, TemplateView):
+    template_name = 'ops/task_management_list.html'
     permission_classes = [IsOrgAdmin]
 
     def get_context_data(self, **kwargs):
         context = {
             'app': _('Ops'),
-            'action': _('Task list'),
-        }
-        kwargs.update(context)
-        return super().get_context_data(**kwargs)
-
-
-class FileTaskListView(PermissionsMixin, DatetimeSearchMixin, TemplateView):
-    template_name = 'ops/file_task_list.html'
-    permission_classes = [IsOrgAdmin]
-
-    def get_context_data(self, **kwargs):
-        context = {
-            'app': _('Ops'),
-            'action': _('文件分发'),
+            'action': _('任务管理'),
             'date_from': self.date_from,
             'date_to': self.date_to,
+            'task_type': TaskMeta.TASK_TYPE_CHOICE
         }
         kwargs.update(context)
         return super().get_context_data(**kwargs)
 
 
-class FileTaskCreateView(PermissionsMixin, TemplateView):
-    model = Task
-    template_name = 'ops/file_task_create.html'
+class TaskDetailInfoView(PermissionsMixin, DetailView):
+    model = TaskMeta
+    template_name = 'ops/task_detail_info.html'
     permission_classes = [IsOrgAdmin]
-
-    def get_system_user(self):
-        return SystemUser.objects.all().only('id', 'name')
 
     def get_context_data(self, **kwargs):
         context = {
             'app': _('Ops'),
-            'action': _('创建文件分发'),
-            'system_user': self.get_system_user()
+            'action': _('Task detail'),
+            'task_info': self.get_object().task_info
+        }
+        kwargs.update(context)
+        return super().get_context_data(**kwargs)
+
+
+class TaskExecutionHistoryView(PermissionsMixin, DetailView):
+    model = TaskMeta
+    template_name = 'ops/task_execution_history.html'
+    permission_classes = [IsOrgAdmin]
+
+    def get_context_data(self, **kwargs):
+        context = {
+            'app': _('Ops'),
+            'action': _('Task run history'),
         }
         kwargs.update(context)
         return super().get_context_data(**kwargs)

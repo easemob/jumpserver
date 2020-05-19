@@ -61,6 +61,15 @@
                         </div>
 
                         <div class="form-group required">
+                            <label for="job-description" class="col-sm-2 control-label">作业描述</label>
+                            <div class="col-sm-9">
+                                <textarea name="description" cols="40" rows="5" maxlength="128" class="form-control"
+                                          title="" id="job-description"></textarea>
+                                </textarea>
+                            </div>
+                        </div>
+
+                        <div class="form-group required">
                             <label class="col-sm-2 control-label">源文件</label>
                             <div class="col-sm-9">
                                 <button id="btn-upload-local-file" type="button" class="btn btn-default">
@@ -69,6 +78,18 @@
                                 <button id="btn-select-server-file" class="btn btn-default" type="button">
                                     <span class="glyphicon glyphicon-cloud"> 服务器文件</span>
                                 </button>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="col-sm-2 control-label">变量</label>
+                            <div class="col-sm-9 ">
+                                <select name="arguments" multiple="multiple" tabindex="4"
+                                        class="form-control multiple-select">
+                                    {% for arg in task_argument %}
+                                        <option value="{{ arg.id }}">{{ arg.name }}</option>
+                                    {% endfor %}
+                                </select>
                             </div>
                         </div>
 
@@ -136,7 +157,7 @@
                         </div>
                         <div class="row">
                             <div class="col-sm-9 col-sm-offset-2">
-                                <button style="width:100%" class="btn btn-primary" type="submit">提 交</button>
+                                <button style="width:100%" class="btn btn-primary" type="submit">创 建</button>
                             </div>
                         </div>
 
@@ -164,8 +185,35 @@
         $(this).parent().parent().remove()
       }
 
-      $(document).ready(function () {
+      function handleFormData(data) {
+        data.hosts = target_assets_id
+        data.description = data.description.trim()
+        if (!data.arguments) {
+          data.arguments = []
+        }
+        if (typeof data.arguments === 'string' || data.arguments instanceof String) {
+          data.arguments = [data.arguments]
+        }
+        var source_path = []
+        $.each($('#source-file-info-table .source-file-path'), function () {
+          source_path.push($(this).text())
+        })
+        data.src_file_list = JSON.stringify(source_path)
+        data.task_meta = {
+          name: data.name,
+          description: data.description,
+          task_type: 'file_deploy',
+        }
+        delete data.name
+        delete data.description
+        return data
+      }
 
+      $(document).ready(function () {
+        $('.multiple-select').select2({
+          placeholder: "选择的变量可以通过$变量命使用",
+          allowClear: true
+        });
       }).on('click', '#btn-assets-select', function () {
         $('#asset_list_modal').modal('show');
       }).on('click', '#btn-upload-local-file', function () {
@@ -178,15 +226,19 @@
         var assets_rows = asset_table2.selected_rows;
         var html = ''
         $table.find('.asset-info').remove()
-        assets_rows.forEach(function (asset) {
-          html += `<tr class="asset-info"><td>${asset.hostname} </td><td>${asset.ip}</td></tr>`
+        target_assets_id.forEach(function (asset_id) {
+          assets_rows.forEach(function (asset) {
+            if (asset.id === asset_id) {
+              html += `<tr class="asset-info"><td>${asset.hostname} </td><td>${asset.ip}</td></tr>`
+              return
+            }
+          })
         })
         $('#asset_list_modal').modal('hide');
         asset_table2.selected = [];
         asset_table2.selected_rows = [];
         asset_table2.ajax.reload();
         $table.append(html)
-        console.log(target_assets_id)
 
       }).on('fileuploaded', '#local-file', function (event, data, previewId, index) {
         var info = data.response
@@ -215,27 +267,21 @@
         $('#server_file_select_modal').modal('hide');
       }).on('submit', '#task-form', function (evt) {
         evt.preventDefault();
-        var data = $(this).serializeObject();
-        data.hosts = target_assets_id
-        var source_path = []
-        $.each($('#source-file-info-table .source-file-path'), function () {
-          source_path.push($(this).text())
-        })
-        data.src_file_list = JSON.stringify(source_path)
-        console.log(data)
-        var url = '{% url "api-ops:file-deploy-executions-list" %}'
+        var data = $(this).serializeObject()
+        var url = '{% url "api-ops:task-file-deploy-list" %}'
         var props = {
           url: url,
-          data: data,
+          data: handleFormData(data),
           method: 'POST',
           form: $('#task-form'),
           error: function (jqXHR) {
             toastr.error(jqXHR.responseText)
           },
-          success: function (resp) {
-            var log_url = resp.log_url;
-            window.open(log_url, '', 'width=800,height=600,left=400,top=400')
-            window.location.href = '{% url "ops:file-task-list" %}'
+          success: function () {
+            toastr.success('创建成功')
+            setTimeout(function () {
+              window.location.href = '{% url "ops:file-task-list" %}'
+            }, 500)
           }
         }
         formSubmit(props);

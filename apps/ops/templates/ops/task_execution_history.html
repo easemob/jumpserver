@@ -1,0 +1,143 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block custom_head_css_js %}
+    <link href="{% static 'css/plugins/select2/select2.min.css' %}" rel="stylesheet">
+    <link href="{% static "css/plugins/sweetalert/sweetalert.css" %}" rel="stylesheet">
+    <script src="{% static 'js/plugins/select2/select2.full.min.js' %}"></script>
+    <script src="{% static "js/plugins/sweetalert/sweetalert.min.js" %}"></script>
+{% endblock %}
+{% block content %}
+    <div class="wrapper wrapper-content animated fadeInRight">
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="ibox float-e-margins">
+                    <div class="panel-options">
+                        <ul class="nav nav-tabs">
+                            <li>
+                                <a href="{% url 'ops:task-detail-info' pk=object.pk %}" class="text-center"><i
+                                        class="fa fa-laptop"></i> {% trans 'Task detail' %} </a>
+                            </li>
+                            <li class="active">
+                                <a href="{% url 'ops:task-execution-history' pk=object.pk %}" class="text-center"><i
+                                        class="fa fa-laptop"></i> {% trans 'Run history' %} </a>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="tab-content">
+                        <div class="col-sm-12" style="padding-left: 0">
+                            <div class="ibox float-e-margins">
+                                <div class="ibox-title">
+                                    <span style="float: left">{% trans 'History of ' %} <b>{{ object.name }}</b></span>
+                                    <div class="ibox-tools">
+                                        <a class="collapse-link">
+                                            <i class="fa fa-chevron-up"></i>
+                                        </a>
+                                        <a class="dropdown-toggle" data-toggle="dropdown" href="#">
+                                            <i class="fa fa-wrench"></i>
+                                        </a>
+                                        <ul class="dropdown-menu dropdown-user">
+                                        </ul>
+                                        <a class="close-link">
+                                            <i class="fa fa-times"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                                <div class="ibox-content">
+                                    <table class="table table-hover " id="task-history-list-table">
+                                        <thead>
+                                        <tr>
+                                            <th class="text-center">
+                                                <input type="checkbox" id="check_all" class="ipt_check_all">
+                                            </th>
+                                            <th>{% trans 'Date start' %}</th>
+                                            <th>{% trans 'Execute user' %}</th>
+                                            <th>{% trans 'Is success' %}</th>
+                                            <th>{% trans 'Time' %}</th>
+                                            <th>{% trans 'Action' %}</th>
+                                        </tr>
+                                        </thead>
+                                        <tbody>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% include 'ops/_json_content_modal.html' %}
+{% endblock %}
+{% block custom_foot_js %}
+    <script>
+      var table_data = {}
+      var execution_table = 0
+
+      function showInfo(asset_id) {
+        var $body_modal = $('#content_modal')
+        $body_modal.modal({show: true})
+        $('#content-body').empty().text(JSON.stringify(table_data[asset_id], null, 4))
+        $body_modal.modal({show: true})
+      }
+
+
+      function initTable() {
+        var options = {
+          ele: $('#task-history-list-table'),
+          columnDefs: [
+            {
+              targets: 1, createdCell: function (td, cellData, rowData) {
+                var d = new Date(cellData);
+                $(td).html(d.toLocaleString());
+              }
+            },
+            {
+              targets: 3, createdCell: function (td, cellData) {
+                if (!cellData) {
+                  $(td).html('<i class="fa fa-times text-danger"></i>')
+                } else {
+                  $(td).html('<i class="fa fa-check text-navy"></i>')
+                }
+              }
+            },
+            {
+              targets: 4, createdCell: function (td, cellData) {
+                if (cellData) {
+                  $(td).html(Number(cellData).toFixed(2) + ' s')
+                } else {
+                  $(td).html("0" + ' s')
+                }
+              }
+            },
+            {
+              targets: 5, createdCell: function (td, cellData, rowData) {
+                var html = ''
+                html += '<button class="btn btn-success btn-xs" onclick="showInfo(\'' + cellData + '\')">详情</button>'
+                table_data[rowData.id] = rowData
+                $(td).html(html);
+              }
+            },
+          ],
+          ajax_url: '{% url "api-ops:task-execution-list" %}?task={{ object.pk }}',
+          columns: [
+            {data: 'id'},
+            {data: "date_start"},
+            {data: "execute_user"},
+            {data: "is_success"},
+            {data: "timedelta"},
+            {data: "id"},
+          ],
+        };
+        execution_table = jumpserver.initServerSideDataTable(options);
+        return execution_table
+      }
+
+      $(document).ready(function () {
+        initTable();
+      })
+
+    </script>
+{% endblock %}

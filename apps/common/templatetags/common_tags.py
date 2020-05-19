@@ -1,7 +1,9 @@
 # ~*~ coding: utf-8 ~*~
-
 from django import template
+from django.core.serializers import serialize
+from django.db.models import QuerySet
 from django.utils import timezone
+from django.utils.safestring import mark_safe
 from django.utils.translation import gettext as _
 from django.utils.html import escape
 from django import forms
@@ -30,7 +32,7 @@ def pagination_range(total_page, current_num=1, display=5):
     except ValueError:
         current_num = 1
 
-    half_display = int(display/2)
+    half_display = int(display / 2)
     start = current_num - half_display if current_num > half_display else 1
     if start + display <= total_page:
         end = start + display
@@ -61,7 +63,7 @@ def ts_to_date(ts):
         ts = float(ts)
     except (TypeError, ValueError):
         ts = 0
-    dt = timezone.datetime.fromtimestamp(ts).\
+    dt = timezone.datetime.fromtimestamp(ts). \
         replace(tzinfo=timezone.get_current_timezone())
     return dt.strftime('%Y-%m-%d %H:%M:%S')
 
@@ -83,10 +85,10 @@ def time_util_with_seconds(date_from, date_to):
     seconds = delta.seconds
     if seconds < 60:
         return '{} s'.format(seconds)
-    elif seconds < 60*60:
-        return '{} m'.format(seconds//60)
+    elif seconds < 60 * 60:
+        return '{} m'.format(seconds // 60)
     else:
-        return '{} h'.format(seconds//3600)
+        return '{} h'.format(seconds // 3600)
 
 
 @register.filter
@@ -118,6 +120,12 @@ def sort(data):
 @register.filter
 def subtract(value, arg):
     return value - arg
+
+
+@register.filter
+def jsonify(data):
+    if isinstance(data, QuerySet):
+        return mark_safe(serialize('json', data))
 
 
 @register.filter
