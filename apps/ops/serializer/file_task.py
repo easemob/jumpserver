@@ -6,7 +6,6 @@ from ops.serializer import TaskArgumentSerializer, TaskMetaSerializer
 
 class FileDeployTaskSerializer(serializers.ModelSerializer):
     task_meta = TaskMetaSerializer(many=False)
-    arguments = TaskArgumentSerializer(many=True)
 
     def create(self, validated_data):
         task_meta_data = validated_data.pop('task_meta')
