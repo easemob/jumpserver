@@ -13,6 +13,7 @@ urlpatterns = [
     path('task/', views.TaskListView.as_view(), name='task-list'),
     path('task/<uuid:pk>/', views.TaskDetailView.as_view(), name='task-detail'),
     path('task/<uuid:pk>/info', views.TaskDetailInfoView.as_view(), name='task-detail-info'),
+    path('task/<uuid:pk>/update', views.TaskUpdateView.as_view(), name='task-update'),
     path('task/<uuid:pk>/adhoc/', views.TaskAdhocView.as_view(), name='task-adhoc'),
     path('task/<uuid:pk>/history/', views.TaskHistoryView.as_view(), name='task-history'),
     path('task/<uuid:pk>/execution/history/', views.TaskExecutionHistoryView.as_view(), name='task-execution-history'),
@@ -28,5 +29,7 @@ urlpatterns = [
     path('task-management', views.TaskManagementListView.as_view(), name='task-management-list'),
 
     path('file-task/', views.FileTaskListView.as_view(), name='file-task-list'),
-    path('file-task/create', views.FileTaskCreateView.as_view(), name='file-task-create')
+    path('file-task/create', views.FileTaskCreateView.as_view(), name='file-task-create'),
+    path('file-task/<uuid:pk>/update', views.FileTaskUpdateView.as_view(), name='file-task-update')
+
 ]

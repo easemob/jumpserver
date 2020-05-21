@@ -5,14 +5,8 @@
 
 {% block custom_head_css_js %}
     <link rel="stylesheet" href="{% static 'js/plugins/xterm/xterm.css' %}"/>
-    <link href="{% static 'css/plugins/codemirror/codemirror.css' %}" rel="stylesheet">
-    <link href="{% static 'css/plugins/codemirror/ambiance.css' %}" rel="stylesheet">
     <link href="{% static 'css/plugins/select2/select2.min.css' %}" rel="stylesheet">
     <script src="{% static 'js/jquery.form.min.js' %}"></script>
-    <script src="{% static 'js/plugins/xterm/xterm.js' %}"></script>
-    <script src="{% static 'js/plugins/xterm/addons/fit/fit.js' %}"></script>
-    <script src="{% static 'js/plugins/codemirror/codemirror.js' %}"></script>
-    <script src="{% static 'js/plugins/codemirror/mode/shell/shell.js' %}"></script>
     <script src="{% static 'js/plugins/select2/select2.full.min.js' %}"></script>
     <style type="text/css">
         .xterm .xterm-screen canvas {
@@ -34,7 +28,9 @@
             <div class="ibox float-e-margins">
                 <div class="ibox-title">
                     <h5>
-                        创建文件分发
+                        {% block box-title %}
+                            创建文件分发
+                        {% endblock %}
                     </h5>
                     <div class="ibox-tools">
                         <a class="collapse-link">
@@ -157,7 +153,12 @@
                         </div>
                         <div class="row">
                             <div class="col-sm-9 col-sm-offset-2">
-                                <button style="width:100%" class="btn btn-primary" type="submit">创 建</button>
+                                <button style="width:100%" class="btn btn-primary" type="submit">
+                                    {% block submit-button-content %}
+                                        创 建
+                                    {% endblock %}
+
+                                </button>
                             </div>
                         </div>
 
@@ -209,11 +210,19 @@
         return data
       }
 
+      {% block extra_js_function %}
+
+      {% endblock %}
+
       $(document).ready(function () {
         $('.multiple-select').select2({
           placeholder: "选择的变量可以通过$变量命使用",
           allowClear: true
         });
+
+        {% block extra_js_init %}
+
+        {% endblock %}
       }).on('click', '#btn-assets-select', function () {
         $('#asset_list_modal').modal('show');
       }).on('click', '#btn-upload-local-file', function () {
@@ -268,19 +277,24 @@
       }).on('submit', '#task-form', function (evt) {
         evt.preventDefault();
         var data = $(this).serializeObject()
-        var url = '{% url "api-ops:task-file-deploy-list" %}'
+        {% block submit_form_info %}
+          var url = '{% url "api-ops:task-file-deploy-list" %}'
+          var method = 'POST'
+          var redirect_url = '{% url "ops:file-task-list" %}'
+          var success_message = '创建成功'
+        {%endblock %}
         var props = {
           url: url,
           data: handleFormData(data),
-          method: 'POST',
+          method: method,
           form: $('#task-form'),
           error: function (jqXHR) {
             toastr.error(jqXHR.responseText)
           },
           success: function () {
-            toastr.success('创建成功')
+            toastr.success(success_message)
             setTimeout(function () {
-              window.location.href = '{% url "ops:file-task-list" %}'
+              window.location.href = redirect_url
             }, 500)
           }
         }
