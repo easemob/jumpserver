@@ -1,0 +1,53 @@
+{% extends 'ops/task_file_deploy_create.html' %}
+{% load bootstrap3 %}
+{% load i18n %}
+{% load common_tags %}
+
+{% block box-title %}
+    更新文件分发
+{% endblock %}
+{% block submit-button-content%}
+    更 新
+{% endblock %}
+{% block extra_js_function %}
+    function initTaskInfo() {
+        $('form input[name="name"]').val('{{ form_data.name |safe }}')
+        $('form input[name="run_as"]').val('{{ form_data.run_as |safe }}')
+        $('form input[name="dest"]').val('{{ form_data.dest |safe }}')
+        $('form input[name="mode"]').val('{{ form_data.mode |safe }}')
+        $('form input[name="group"]').val('{{ form_data.group |safe }}')
+        $('form textarea[name="description"]').val('{{ form_data.description |safe }}')
+        $('.multiple-select').val({{ form_data.arguments | safe }}).change()
+        target_assets_id = {{ form_data.hosts | safe }}
+        var src_file_list = {{ form_data.src_file_list | safe }}
+        var html = ''
+        src_file_list.forEach(function(file_path){
+            var filename = file_path.slice(file_path.lastIndexOf('/') + 1)
+            html += `<tr class="tr-server-source-file"><td>${filename} </td><td class="source-file-path">${file_path}</td></tr>`
+            var $file_input = $('#tmp-server-file').clone()
+            $file_input.css('display', 'block')
+            $file_input.find('input').val(file_path)
+            $('#server-file-form').append($file_input)
+        })
+        $('#source-file-info-table').append(html)
+
+        var hosts_info = {{ form_data.hosts_info | safe }}
+        var html = ''
+        hosts_info.forEach(function(asset){
+            html += `<tr class="asset-info"><td>${asset.hostname} </td><td>${asset.ip}</td></tr>`
+        })
+        $('#target-asset-info-table').append(html)
+    }
+
+{% endblock %}
+
+{% block extra_js_init %}
+    initTaskInfo()
+{% endblock %}
+
+{% block submit_form_info %}
+    var url = '{% url "api-ops:task-file-deploy-detail" pk=task_info.id %}'
+    var method = 'PUT'
+    var redirect_url = '{% url "ops:task-detail-info" pk=task_meta.id %}'
+    var success_message = '更新成功'
+{%endblock %}

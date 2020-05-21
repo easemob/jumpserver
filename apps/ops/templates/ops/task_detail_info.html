@@ -27,7 +27,7 @@
                             {% if user.is_superuser %}
                                 <li class="pull-right">
                                     <a class="btn btn-outline btn-default"
-                                       href="###"><i
+                                       href="{% url 'ops:task-update' pk=object.pk %}"><i
                                             class="fa fa-edit"></i>{% trans 'Update' %}</a>
                                 </li>
                                 <li class="pull-right">
@@ -75,6 +75,10 @@
                                             <td><b>{{ object.name }}</b></td>
                                         </tr>
                                         <tr>
+                                            <td width="20%">{% trans 'Name' %}:</td>
+                                            <td><b>{{ object.description }}</b></td>
+                                        </tr>
+                                        <tr>
                                             <td>{% trans 'Date created' %}:</td>
                                             <td><b>{{ object.date_created }}</b></td>
                                         </tr>
@@ -86,7 +90,7 @@
 
                                         <tr>
                                             <td>{% trans '最后编辑人员' %}:</td>
-                                            <td><b>{{ object.task_info.last_modify_user }}</b></td>
+                                            <td><b>{{ object.task_info.last_modify_user.username }}</b></td>
                                         </tr>
 
 
@@ -178,6 +182,7 @@
 
       function validateInputValue() {
         arguments_data = {}
+        var is_validated = true
         $.each($('#argument-form div input'), function () {
           var constraint_regex = $(this).data('regex')
           var value = $(this).val()
@@ -186,19 +191,25 @@
           var is_pass = new RegExp(constraint_regex).test(value)
           if (!is_pass) {
             swal(value + '格式不对', constrain_description, 'error')
-            return false
+            is_validated = false
           } else {
             arguments_data[id] = value
           }
         })
         execute_form_data.arguments_data = arguments_data
-        return true
+        return is_validated
       }
 
       $(document).ready(function () {
+      }).on('click', '.btn-delete-task', function () {
+        var $this = $(this);
+        var name = "{{ object.name }}";
+        var tid = "{{ object.id }}";
+        var the_url = '{% url "api-ops:tasks-management-detail" pk=DEFAULT_PK %}'.replace('{{ DEFAULT_PK }}', tid);
+        var redirect_url = "{% url 'ops:task-management-list' %}";
+        objectDelete($this, name, the_url, redirect_url);
       }).on('click', '.btn-execute', function () {
-        var arguments =
-          {{ object.task_info.get_arguments | jsonify }}
+        var arguments = {{ object.task_info.get_arguments | jsonify }}
           $('#argument-form  .form-group').empty()
         arguments.forEach(function (arg) {
           var input_html_template = `
