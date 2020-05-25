@@ -173,7 +173,7 @@ class EcsClient:
         request.set_ImageId(ecs_template.image)
         request.set_InstanceType(ecs_template.instance_type)
         request.set_SecurityGroupId(ecs_template.sg)
-        instance_name = f'{instance_name}-[{suffix_number},{len(str(int(suffix_number) + int(amount)))}]'
+        instance_name = f'{instance_name}[{suffix_number},{len(str(int(suffix_number) + int(amount)))}]'
         request.set_InstanceName(instance_name)
         request.set_ZoneId(ecs_template.zone)
         request.set_SystemDiskCategory(ecs_template.system_disk_category)
