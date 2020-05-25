@@ -173,7 +173,8 @@ class EcsClient:
         request.set_ImageId(ecs_template.image)
         request.set_InstanceType(ecs_template.instance_type)
         request.set_SecurityGroupId(ecs_template.sg)
-        request.set_InstanceName(f'{instance_name}-[{suffix_number},{amount}]')
+        instance_name = f'{instance_name}-[{suffix_number},{len(str(int(suffix_number) + int(amount)))}]'
+        request.set_InstanceName(instance_name)
         if ecs_template.has_public_ip:
             request.set_InternetMaxBandwidthOut(ecs_template.internet_bandwidth)
             request.set_InternetChargeType(ecs_template.internet_charge_type)
