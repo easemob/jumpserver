@@ -122,7 +122,8 @@
                     </div>
                     <div class="col-md-4">
                         <div class="input-group">
-                            <input class="form-control" name="data_disk_size" type="number" min="20" step="10"
+                            <input class="form-control" name="data_disk_size" id="data_disk_size" type="number" min="20"
+                                   step="10"
                                    max="32768"
                                    value="100" aria-describedby="disk-size-unit"/>
                             <span class="input-group-addon" id="disk-size-unit">GB</span>
@@ -276,7 +277,7 @@
             </div>
             <div class="col-md-4">
                 <div class="input-group">
-                    <input class="form-control disk-size" id="data_disk_size" name="data_disk_size" readonly
+                    <input class="form-control disk-size" id="image_data_disk_size" name="data_disk_size" readonly
                            type="number" min="20"
                            step="10" max="32768"
                            aria-describedby="disk-size-unit"/>
