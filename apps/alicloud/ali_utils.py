@@ -175,12 +175,14 @@ class EcsClient:
         request.set_SecurityGroupId(ecs_template.sg)
         instance_name = f'{instance_name}-[{suffix_number},{len(str(int(suffix_number) + int(amount)))}]'
         request.set_InstanceName(instance_name)
-        if ecs_template.has_public_ip:
-            request.set_InternetMaxBandwidthOut(ecs_template.internet_bandwidth)
-            request.set_InternetChargeType(ecs_template.internet_charge_type)
         request.set_ZoneId(ecs_template.zone)
         request.set_SystemDiskCategory(ecs_template.system_disk_category)
         request.set_SystemDiskSize(ecs_template.system_disk_size)
+        if ecs_template.has_public_ip:
+            request.set_InternetMaxBandwidthOut(ecs_template.internet_bandwidth)
+            request.set_InternetChargeType(ecs_template.internet_charge_type)
+        if ecs_template.vswitch:
+            request.set_VSwitchId(ecs_template.vswitch)
         data_disk_list = []
         if ecs_template.data_disk_info:
             data_disk_info = json.loads(ecs_template.data_disk_info)
