@@ -306,7 +306,7 @@
       var image_disk_counter = 0
 
       function getZonesByRegion() {
-        $.ajax({
+        return $.ajax({
           url: '{% url "api-alicloud:gateway-zones" region='REGIONTMP' %}'.replace('REGIONTMP', region),
           type: 'GET',
           contentType: "application/json",
@@ -348,7 +348,6 @@
 
         var current_zones_disk_categories = []
         current_zones_list.forEach(function (info) {
-          console.log(info)
           if (info.ZoneId == zone) {
             current_zones_disk_categories = info.DiskCategories
           }
@@ -356,7 +355,6 @@
 
         var $diskCategory = $('.disk-category')
         $diskCategory.empty()
-        console.log(current_zones_disk_categories, 'absdf')
         html = ''
         current_zones_disk_categories.forEach(function (info) {
           html += '<option value="DISK_TYPE"> DISK_NAME </option>'.replaceAll('DISK_TYPE', info).replaceAll('DISK_NAME', all_disk_info[info])
@@ -370,7 +368,6 @@
       function query_instance_type_by_resource() {
         var is_ready = true
         $('.itype .resouce-condition').each(function () {
-          console.log($(this).val())
           if (!$(this).val()) {
             is_ready = false
           }
@@ -387,7 +384,7 @@
             query_data[$(this).attr('name')] = $(this).val()
           }
         })
-        $.ajax({
+        return $.ajax({
           url: '{% url "api-alicloud:gateway-instance-type" region='REGIONTMP' zone='ZONETMP' %}'.replace('REGIONTMP', region).replace('ZONETMP', zone),
           type: 'GET',
           data: query_data,
@@ -395,7 +392,6 @@
           success: function (data) {
             var html = ''
             data.forEach(function (info) {
-              console.log(info.InstanceType)
               html += '<option value="INSTANCE_TYPE">INSTANCE_TYPE</option>'.replaceAll('INSTANCE_TYPE', info.InstanceType.InstanceType)
             })
             $('#instance_type').append(html)
@@ -404,12 +400,11 @@
             toastr.error('未找到匹配机型')
           }
         })
-        console.log(query_data)
       }
 
       function get_vpc_by_region() {
         $('#vpc_id').empty()
-        $.ajax({
+        return $.ajax({
           url: '{% url "api-alicloud:gateway-vpcs" region='REGIONTMP' %}'.replace('REGIONTMP', region),
           type: 'GET',
           contentType: "application/json",
@@ -482,7 +477,7 @@
 
       function query_images_by_region() {
         $('#image').empty()
-        $.ajax({
+        return $.ajax({
           url: '{% url "api-alicloud:gateway-images" region='REGIONTMP' %}'.replace('REGIONTMP', region),
           type: 'GET',
           contentType: "application/json",
@@ -534,7 +529,6 @@
           $diskForm.attr('id', 'image_disk_' + image_disk_counter)
           $diskForm.find('select').attr('name', new_id + '_category').attr('data-snapshot-id', info.SnapshotId)
           $diskForm.find('input').attr('name', new_id + '_size').val(info.Size)
-          console.log($diskForm)
           $('.data-disks').append($diskForm)
           $diskForm.show()
         })
@@ -565,21 +559,6 @@
         return JSON.stringify(data_disk)
       }
 
-
-      function test_submit_with_mock_data() {
-        var data = "{\"csrfmiddlewaretoken\":\"6AdVPpJf8XDFD2HmFV2byIRG1yPAI5GmebPtlSZB64VnWaN7rGqEJFnTlP6PXfBb\",\"region\":\"cn-beijing\",\"zone\":\"cn-beijing-c\",\"cores\":\"4\",\"memory\":\"8\",\"network_type\":\"classic\",\"instance_type\":\"ecs.sn1.large\",\"image\":\"m-2zed232pzwmot9iwxsmm\",\"system_disk_category\":\"cloud_efficiency\",\"system_disk_size\":\"40\",\"sg\":\"G1096298575498592\",\"instance_name\":\"AAA\",\"host_name\":\"\",\"admin_user\":\"b5370742-7815-424f-bf5f-ca27cc954c30\",\"nodes\":[\"4d57c586-6382-4fd6-97fd-bb8bf922e8e3\"],\"domain\":\"\",\"disk_data\":\"[{},{\\\"category\\\":\\\"cloud_efficiency\\\",\\\"snapshot_id\\\":\\\"s-2ze1br8sjl2moi969wft\\\",\\\"size\\\":\\\"500\\\"}]\"}"
-        var form = $('form')
-        var props = {
-          url: '{% url "api-alicloud:ecs-template-list" %}',
-          method: 'POST',
-          form: form,
-          data: {a: 'a'},
-          redirect_to: '{% url "alicloud:alicloud-template-ecs-list" %}'
-        };
-        formSubmit(props);
-
-      }
-
       function safe_boolean(value) {
         var value_type = typeof (value)
         if (value_type == 'string') {
@@ -608,18 +587,23 @@
         }
       }
 
+      {% block extra_js_function %}
+      {% endblock %}
+
       $(document).ready(function () {
         {#test_submit_with_mock_data()#}
         $('#image-data-disk-template').hide()
         $('.select2').select2({});
         init_cpu_memory_option()
-        region = $('#region').val()
-        getZonesByRegion()
-        get_vpc_by_region()
-        query_images_by_region()
         $('#id_nodes.select2').select2({
           closeOnSelect: false
         });
+        region = $('#region').val()
+        {% block extra_js_init %}
+          getZonesByRegion()
+          get_vpc_by_region()
+          query_images_by_region()
+        {% endblock %}
 
       }).on("change", "#region", function (e) {
         region = $(this).val()
@@ -669,6 +653,7 @@
           }
           var form = $("form");
           var data = form.serializeObject();
+          console.log(data)
           var diskData = []
           $.each(data, function (k, v) {
             if (k.startsWith('image_disk_')) {
@@ -681,6 +666,7 @@
 
           })
           if (!data.hasOwnProperty('has_public_ip')) {
+            data.has_public_ip = false
             delete data['internet_bandwidth']
             delete data['internet_charge_type']
           } else {
@@ -694,10 +680,14 @@
             data["nodes"] = [data["nodes"]]
           }
           console.log(data)
+          {% block submit_form_info %}
+            var url = '{% url "api-alicloud:ecs-template-list" %}'
+            var method = 'POST'
+          {% endblock %}
           var props = {
-            url: '{% url "api-alicloud:ecs-template-list" %}',
+            url: url,
             data: data,
-            method: 'POST',
+            method: method,
             form: form,
             redirect_to: '{% url "alicloud:alicloud-template-ecs-list" %}'
           };

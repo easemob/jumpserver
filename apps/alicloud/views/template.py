@@ -8,10 +8,13 @@ from django.urls import reverse_lazy
 from django.views.generic import TemplateView, DetailView
 from django.utils.translation import ugettext_lazy as _
 from django.views.generic.edit import FormMixin
+from rest_framework.renderers import JSONRenderer
+
 from alicloud.ali_utils import EcsClient, RosClient
 from alicloud.forms import EcsTemplateCreateForm
 from alicloud.forms.template import RosTemplateCreateForm, RosStackCreateForm
 from alicloud.models import EcsTemplate, StackCreateRecord
+from alicloud.serializers import EcsTemplateSerializer
 from assets.models import Node
 from django.shortcuts import render, redirect
 from common.permissions import PermissionsMixin, IsValidUser
@@ -30,7 +33,52 @@ class EcsTemplateListView(TemplateView):
         return super().get_context_data(**kwargs)
 
 
-class EcsTeplateCreateView(FormMixin, TemplateView):
+class EcsTemplateUpdateView(FormMixin, TemplateView):
+    model = EcsTemplate
+    form_class = EcsTemplateCreateForm
+    template_name = 'alicloud/ecs_template_update_clone.html'
+    success_url = reverse_lazy('alicloud:alicloud-template-ecs-list')
+
+    def get_context_data(self, **kwargs):
+        ecs = EcsClient()
+        template = EcsTemplate.objects.get(id=str(kwargs.pop('pk')))
+        # transform uuid to str
+        form_data = json.loads(JSONRenderer().render(EcsTemplateSerializer(template).data))
+        print(form_data)
+        context = {
+            'app': _('Assets'),
+            'action': _('Update Template'),
+            'region_list': ecs.query_region(),
+            'is_clone': False,
+            'form_data': form_data
+        }
+        kwargs.update(context)
+        return super().get_context_data(**kwargs)
+
+class EcsTemplateCloneView(FormMixin, TemplateView):
+    model = EcsTemplate
+    form_class = EcsTemplateCreateForm
+    template_name = 'alicloud/ecs_template_update_clone.html'
+    success_url = reverse_lazy('alicloud:alicloud-template-ecs-list')
+
+    def get_context_data(self, **kwargs):
+        ecs = EcsClient()
+        template = EcsTemplate.objects.get(id=str(kwargs.pop('pk')))
+        # transform uuid to str
+        form_data = json.loads(JSONRenderer().render(EcsTemplateSerializer(template).data))
+        print(form_data)
+        context = {
+            'app': _('Assets'),
+            'action': _('Create Template'),
+            'region_list': ecs.query_region(),
+            'is_clone': True,
+            'form_data': form_data
+        }
+        kwargs.update(context)
+        return super().get_context_data(**kwargs)
+
+
+class EcsTemplateCreateView(FormMixin, TemplateView):
     model = EcsTemplate
     form_class = EcsTemplateCreateForm
     template_name = 'alicloud/ecs_template_create.html'
@@ -40,7 +88,7 @@ class EcsTeplateCreateView(FormMixin, TemplateView):
         ecs = EcsClient()
         context = {
             'app': _('Assets'),
-            'action': _('Create asset'),
+            'action': _('Create Template'),
             'region_list': ecs.query_region()
         }
         kwargs.update(context)

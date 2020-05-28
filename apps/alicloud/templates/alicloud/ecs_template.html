@@ -107,7 +107,9 @@
             {
               targets: 7, createdCell: function (td, cellData) {
                 var del_btn = '<a class="btn btn-xs btn-danger m-l-xs btn_asset_delete" data-uid="{{ DEFAULT_PK }}">{% trans "Delete" %}</a>'.replace('{{ DEFAULT_PK }}', cellData);
-                $(td).html(del_btn)
+                var update_btn = '<a class="btn btn-xs btn-primary m-l-xs btn_asset_update" data-uid="{{ DEFAULT_PK }}">{% trans "Update" %}</a>'.replace('{{ DEFAULT_PK }}', cellData);
+                var clone_btn = '<a class="btn btn-xs btn-warning m-l-xs btn_asset_clone" data-uid="{{ DEFAULT_PK }}">{% trans "克隆" %}</a>'.replace('{{ DEFAULT_PK }}', cellData);
+                $(td).html(update_btn + clone_btn + del_btn)
               }
             }
           ],
@@ -177,6 +179,14 @@
           doDelete($data_table, name, the_url)
         });
 
+      }).on('click', '.btn_asset_update', function () {
+        var $this = $(this);
+        var uid = $this.data('uid');
+        window.location.href = '{% url "alicloud:alicloud-template-ecs-update" pk=DEFAULT_PK %}'.replace("{{ DEFAULT_PK }}", uid);
+      }).on('click', '.btn_asset_clone', function () {
+        var $this = $(this);
+        var uid = $this.data('uid');
+        window.location.href = '{% url "alicloud:alicloud-template-ecs-clone" pk=DEFAULT_PK %}'.replace("{{ DEFAULT_PK }}", uid);
       }).on('click', '#btn_bulk_update', function () {
         var action = $('#slct_bulk_update').val();
         var id_list = asset_table.selected;

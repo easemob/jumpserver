@@ -44,7 +44,7 @@
                                         <td><b>{{ ecs_template.zone }}</b></td>
                                     </tr>
                                     <tr>
-                                        <td>{% trans 'Image' %}:</td>
+                                        <td>Image</td>
                                         <td><b>{{ ecs_template.image }}</b></td>
                                     </tr>
                                     <tr>
@@ -67,7 +67,7 @@
                                         </td>
                                     </tr>
                                     <tr>
-                                        <td>{% trans 'Security group' %}:</td>
+                                        <td>{% trans 'Security Group' %}:</td>
                                         <td><b>{{ ecs_template.sg }}</b></td>
                                     </tr>
                                     <tr>
@@ -85,6 +85,11 @@
                                             <td><b>{{ ecs_template.vswitch }}</b></td>
                                         </tr>
                                     {% endif %}
+
+                                    <tr>
+                                        <td>{% trans 'Is Password Inherit' %}:</td>
+                                        <td><b>{{ ecs_template.password_inherit }}</b></td>
+                                    </tr>
 
                                     <tr>
                                         <td>{% trans 'Has Public IP' %}:</td>

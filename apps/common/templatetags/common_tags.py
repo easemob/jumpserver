@@ -129,6 +129,14 @@ def jsonify(data):
 
 
 @register.filter
+def to_js_boolean(true):
+    if true:
+        return 'true'
+    else:
+        return 'false'
+
+
+@register.filter
 def state_show(state):
     success = '<i class ="fa fa-check text-navy"> </i>'
     failed = '<i class ="fa fa-times text-danger"> </i>'

@@ -101,8 +101,6 @@ class EcsClient:
         if network_type:
             request.set_NetworkType(network_type)
         response = self.client.do_action_with_exception(request)
-        for info in json.loads(response)['Data']['RecommendInstanceType']:
-            print(info['InstanceType'])
         return json.loads(response)['Data']['RecommendInstanceType']
 
     def pagination_get_all_data(self, request, page_zie=50):
@@ -181,13 +179,12 @@ class EcsClient:
         if ecs_template.has_public_ip:
             request.set_InternetMaxBandwidthOut(ecs_template.internet_bandwidth)
             request.set_InternetChargeType(ecs_template.internet_charge_type)
-        if ecs_template.vswitch:
+        if ecs_template.vswitch and ecs_template.network_type == 'vpc':
             request.set_VSwitchId(ecs_template.vswitch)
         data_disk_list = []
         if ecs_template.data_disk_info:
             data_disk_info = json.loads(ecs_template.data_disk_info)
             for info in data_disk_info:
-                print(info)
                 tmp = {
                     'Size': info['size'],
                     'Category': info['category'],

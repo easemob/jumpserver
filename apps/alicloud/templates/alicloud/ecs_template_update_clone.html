@@ -1,0 +1,74 @@
+{% extends 'alicloud/ecs_template_create.html' %}
+{% load bootstrap3 %}
+{% load i18n %}
+{% load common_tags %}
+
+{% block extra_js_function %}
+
+
+    async function init_template_data() {
+        {% if not is_clone %}
+            $('form input[name="name"]').val('{{ form_data.name |safe }}')
+            $('form input[name="instance_name"]').val('{{ form_data.instance_name |safe }}')
+        {% endif %}
+        $('form select[name="password_inherit"]').val('{{ form_data.password_inherit | to_js_boolean }}').change()
+
+        {% if not form_data.password_inherit %}
+            $('form input[name="password"]').val('{{ form_data.password |safe }}')
+            $('form input[name="password_repeat"]').val('{{ form_data.password |safe }}')
+        {% endif %}
+        $('form select[name="cores"]').val('{{ form_data.cores |safe }}')
+        $('form select[name="memory"]').val('{{ form_data.memory |safe }}')
+        $('form select[name="system_disk_category"]').val('{{ form_data.system_disk_category |safe }}')
+        $('form select[name="system_disk_size"]').val('{{ form_data.system_disk_size |safe }}')
+        $('form input[name="has_public_ip"]').attr('checked', '{{ form_data.has_public_ip |to_js_boolean}}')
+        $('form select[name="internet_bandwidth"]').val('{{ form_data.internet_bandwidth |safe }}')
+        $('form select[name="internet_charge_type"]').val('{{ form_data.internet_charge_type |safe }}')
+        $('form select[name="admin_user"]').val('{{ form_data.admin_user |safe }}').change()
+        $('form select[name="nodes"]').val({{ form_data.nodes |safe }}).change()
+        var new_data_disk_list = {{ form_data.data_disk_info |safe}}.filter(info=>{return !info.snapshot_id})
+        console.log(new_data_disk_list)
+        if (new_data_disk_list.length>0) {
+            $('form input[name="data_disk_size"]').val(new_data_disk_list[0].size)
+            $('form input[name="data_disk_count"]').val(new_data_disk_list.length)
+        }
+
+        {% if form_data.domain %}
+             $('form select[name="domain"]').val('{{ form_data.domain |safe }}').change()
+        {% endif %}
+
+        getZonesByRegion().then(res => {
+            $('form select[name="zone"]').val('{{ form_data.zone |safe }}').change()
+            $('form select[name="network_type"]').val('{{ form_data.network_type |safe }}')
+            query_instance_type_by_resource().then(res => {
+            $('form select[name="instance_type"]').val('{{ form_data.instance_type |safe }}')
+            })
+        })
+        get_vpc_by_region().then(res => {
+             $('form select[name="vpc"]').val('{{ form_data.vpc |safe }}')
+            $('form select[name="vswitch"]').val('{{ form_data.vswitch |safe }}')
+
+        })
+        query_images_by_region().then(res => {
+             $('form select[name="image"]').val('{{ form_data.image |safe }}')
+        })
+
+    }
+
+{% endblock %}
+
+{% block extra_js_init %}
+    $('form select[name="region"]').val('{{ form_data.region |safe }}')
+     region =  '{{ form_data.region | safe }}'
+     init_template_data()
+{% endblock %}
+
+
+{% block submit_form_info %}
+    var url = '{% url "api-alicloud:ecs-template-detail" pk=form_data.id %}'
+    var method = 'PUT'
+    {% if is_clone %}
+        var url = '{% url "api-alicloud:ecs-template-list" %}'
+        var method = 'POST'
+    {% endif %}
+{% endblock %}
