@@ -14,11 +14,11 @@
                     <div class="panel-options">
                         <ul class="nav nav-tabs">
                             <li>
-                                <a href="{% url 'ops:task-detail-info' pk=object.pk %}" class="text-center"><i
+                                <a href="{% url 'ops:job-detail' pk=object.pk %}" class="text-center"><i
                                         class="fa fa-laptop"></i> {% trans 'Task detail' %} </a>
                             </li>
                             <li class="active">
-                                <a href="{% url 'ops:task-execution-history' pk=object.pk %}" class="text-center"><i
+                                <a href="{% url 'ops:job-execution-history' pk=object.pk %}" class="text-center"><i
                                         class="fa fa-laptop"></i> {% trans 'Run history' %} </a>
                             </li>
                         </ul>
@@ -43,7 +43,7 @@
                                     </div>
                                 </div>
                                 <div class="ibox-content">
-                                    <table class="table table-hover " id="task-history-list-table">
+                                    <table class="table table-hover " id="job-history-list-table">
                                         <thead>
                                         <tr>
                                             <th class="text-center">
@@ -51,8 +51,9 @@
                                             </th>
                                             <th>{% trans 'Date start' %}</th>
                                             <th>{% trans 'Execute user' %}</th>
-                                            <th>{% trans 'Is success' %}</th>
-                                            <th>{% trans 'Time' %}</th>
+                                            <th>{% trans '是否完成' %}</th>
+                                            <th>{% trans '执行日志' %}</th>
+                                            <th>{% trans 'Task 执行情况' %}</th>
                                             <th>{% trans 'Action' %}</th>
                                         </tr>
                                         </thead>
@@ -81,10 +82,31 @@
         $body_modal.modal({show: true})
       }
 
+      function openDetail(asset_id) {
+        var url = '{% url "ops:job-execution-detail" pk=DEFAULT_PK %}'.replace("{{ DEFAULT_PK }}", asset_id)
+        window.open(url)
+
+      }
+
+      function cancelExecution(asset_id) {
+        $.ajax({
+          url: '{% url "api-ops:job-execution-detail" pk=DEFAULT_PK %}'.replace("{{ DEFAULT_PK }}", asset_id),
+          type: 'PATCH',
+          data: JSON.stringify({state: 'cancel'}),
+          contentType: "application/json",
+          success: function () {
+            execution_table.ajax.reload()
+            toastr.success('设置完成!')
+          },
+          error: function (data) {
+            toastr.error(data)
+          }
+        })
+      }
 
       function initTable() {
         var options = {
-          ele: $('#task-history-list-table'),
+          ele: $('#job-history-list-table'),
           columnDefs: [
             {
               targets: 1, createdCell: function (td, cellData, rowData) {
@@ -94,39 +116,52 @@
             },
             {
               targets: 3, createdCell: function (td, cellData) {
-                if (!cellData) {
+                if (cellData === 'finish') {
+                  $(td).html('<i class="fa fa-check text-navy "></i>')
+                }
+                if (cellData === 'cancel') {
                   $(td).html('<i class="fa fa-times text-danger"></i>')
-                } else {
-                  $(td).html('<i class="fa fa-check text-navy"></i>')
+                }
+                if (cellData === 'executing') {
+                  $(td).html('<i class="fa fa-circle-o-notch text-warn"></i>')
                 }
               }
             },
             {
-              targets: 4, createdCell: function (td, cellData) {
-                if (cellData) {
-                  $(td).html(Number(cellData).toFixed(2) + ' s')
-                } else {
-                  $(td).html("0" + ' s')
-                }
+              targets: 4, createdCell: function (td, cellData, rowData) {
+                var url = '{% url "ops:celery-task-log" pk=DEFAULT_PK %}'.replace("{{ DEFAULT_PK }}", cellData)
+                html = `<a href="${url}" target="_blank">查看</a>`
+                $(td).html(html);
               }
             },
             {
               targets: 5, createdCell: function (td, cellData, rowData) {
                 var html = ''
-                html += '<button class="btn btn-success btn-xs" onclick="showInfo(\'' + cellData + '\')">详情</button>'
-                table_data[rowData.id] = rowData
+                html += '<button class="btn btn-info btn-xs" onclick="openDetail(\'' + cellData + '\')">查看</button>'
                 $(td).html(html);
               }
             },
+            {
+              targets: 6, createdCell: function (td, cellData, rowData) {
+                var html = ''
+                if (rowData.state == 'executing') {
+                  html += '<button class="btn btn-danger btn-xs" onclick="cancelExecution(\'' + cellData + '\')">终止</button>'
+                } else {
+                  html += '<button class="btn btn-danger btn-xs" disabled onclick="cancelExecution(\'' + cellData + '\')">终止</button>'
+                }
+                $(td).html(html)
+              }
+            },
           ],
-          ajax_url: '{% url "api-ops:task-execution-list" %}?task_meta={{ object.pk }}',
+          ajax_url: '{% url "api-ops:job-execution-list" %}?job={{ object.pk }}',
           columns: [
             {data: 'id'},
-            {data: "date_start"},
-            {data: "execute_user"},
-            {data: "is_success"},
-            {data: "timedelta"},
-            {data: "id"},
+            {data: "date_execute"},
+            {data: "execute_user",},
+            {data: "state"},
+            {data: "id", orderable: false},
+            {data: "id", orderable: false},
+            {data: "id", orderable: false},
           ],
         };
         execution_table = jumpserver.initServerSideDataTable(options);

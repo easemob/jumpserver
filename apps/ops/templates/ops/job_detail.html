@@ -17,11 +17,11 @@
                     <div class="panel-options">
                         <ul class="nav nav-tabs">
                             <li class="active">
-                                <a href="{% url 'ops:task-detail-info' pk=object.pk %}" class="text-center"><i
+                                <a href="{% url 'ops:job-detail' pk=object.pk %}" class="text-center"><i
                                         class="fa fa-laptop"></i> {% trans 'Task detail' %} </a>
                             </li>
                             <li>
-                                <a href="{% url 'ops:task-execution-history' pk=object.pk %}" class="text-center"><i
+                                <a href="{% url 'ops:job-execution-history' pk=object.pk %}" class="text-center"><i
                                         class="fa fa-laptop"></i> {% trans 'Run history' %} </a>
                             </li>
                             {% if user.is_superuser %}
@@ -88,22 +88,6 @@
                                             <td><b>{{ object.created_by }}</b></td>
                                         </tr>
 
-                                        <tr>
-                                            <td>{% trans '最后编辑人员' %}:</td>
-                                            <td><b>{{ object.task_info.last_modify_user.username }}</b></td>
-                                        </tr>
-
-
-                                        {% for name, value in object.task_info.get_fields %}
-                                            {% if value %}
-                                                <tr>
-                                                    <td>{{ name }}</td>
-                                                    <td><b>{{ value }}</b></td>
-                                                </tr>
-                                            {% endif %}
-                                        {% endfor %}
-
-
                                         </tbody>
                                     </table>
                                 </div>
@@ -112,33 +96,19 @@
                         <div class="col-sm-5" style="padding-left: 0;padding-right: 0">
                             <div class="panel panel-primary">
                                 <div class="panel-heading">
-                                    <i class="fa fa-info-circle"></i> {% trans '关联的变量' %}
+                                    <i class="fa fa-info-circle"></i> {% trans '任务步骤' %}
                                 </div>
                                 <div class="panel-body">
                                     <table class="table">
                                         <tbody>
-                                        {% for args in object.task_info.get_arguments %}
+                                        {% for task_meta_list in object.all_task_meta %}
                                             <tr>
-                                                <td><b>{{ args.name }}</b></td>
-                                                <td><b>{{ args.description }}</b></td>
-                                            </tr>
-                                        {% endfor %}
-                                        </tbody>
-                                    </table>
-
-                                </div>
-                            </div>
-
-                            <div class="panel panel-primary">
-                                <div class="panel-heading">
-                                    <i class="fa fa-info-circle"></i> {% trans '关联的主机' %}
-                                </div>
-                                <div class="panel-body">
-                                    <table class="table">
-                                        <tbody>
-                                        {% for asset in object.task_info.get_hosts %}
-                                            <tr>
-                                                <td><b class="bdg_node">{{ asset.hostname }}</b></td>
+                                                <td><b>第{{ forloop.counter }}步</b></td>
+                                                {% for task_meta in task_meta_list %}
+                                                    <td>
+                                                        <a href="{% url 'ops:task-detail-info' pk=task_meta.id %}">{{ task_meta.name }}</a>
+                                                    </td>
+                                                {% endfor %}
                                             </tr>
                                         {% endfor %}
                                         </tbody>
@@ -155,12 +125,11 @@
 {% endblock %}
 {% block custom_foot_js %}
     <script>
-
       var execute_form_data = {}
 
       function executeTask() {
-        var url = '{% url "api-ops:task-execute" %}'
-        execute_form_data.task_meta_id = '{{ object.id }}'
+        var url = '{% url "api-ops:job-execute" pk=DEFAULT_PK %}'.replace("{{ DEFAULT_PK }}", '{{ object.id }}')
+        console.log(url)
         var props = {
           url: url,
           method: 'POST',
@@ -176,7 +145,6 @@
             window.open(url, '', 'width=800,height=600')
           }
         }
-        console.log(execute_form_data)
         formSubmit(props)
       }
 
@@ -205,12 +173,12 @@
         var $this = $(this);
         var name = "{{ object.name }}";
         var tid = "{{ object.id }}";
-        var the_url = '{% url "api-ops:tasks-management-detail" pk=DEFAULT_PK %}'.replace('{{ DEFAULT_PK }}', tid);
-        var redirect_url = "{% url 'ops:task-management-list' %}";
+        var the_url = '{% url "api-ops:job-remove" pk=DEFAULT_PK %}'.replace('{{ DEFAULT_PK }}', tid);
+        var redirect_url = "{% url 'ops:job-list' %}";
         objectDelete($this, name, the_url, redirect_url);
       }).on('click', '.btn-execute', function () {
-        var arguments = {{ object.task_info.get_arguments | jsonify }}
-          $('#argument-form  .form-group').remove()
+        var arguments = {{ object.all_task_arguments_unique | jsonify }}
+          $('#argument-form .form-group').remove()
         arguments.forEach(function (arg) {
           var input_html_template = `
             <div class="form-group required">

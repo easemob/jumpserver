@@ -19,7 +19,7 @@ __all__ = [
 
 
 class TaskManagementViewSet(OrgBulkModelViewSet):
-    queryset = TaskMeta.objects.all()
+    queryset = TaskMeta.objects.all().order_by('-date_created')
     serializer_class = TaskMetaSerializer
     filter_fields = ('name',)
     search_fields = filter_fields
@@ -37,8 +37,6 @@ class TaskManagementViewSet(OrgBulkModelViewSet):
             date_from = timezone.datetime.strptime(date_from_s, self.date_format)
             tz = timezone.get_current_timezone()
             date_from = tz.localize(date_from)
-        else:
-            date_from = timezone.now() - timezone.timedelta(7)
 
         if date_to_s:
             date_to = timezone.datetime.strptime(
@@ -47,8 +45,7 @@ class TaskManagementViewSet(OrgBulkModelViewSet):
             date_to = date_to.replace(
                 tzinfo=timezone.get_current_timezone()
             )
-        else:
-            date_to = timezone.now()
+
         if date_from:
             queryset = queryset.filter(date_created__gte=date_from)
         if date_to:
@@ -68,19 +65,13 @@ class TaskManagementViewSet(OrgBulkModelViewSet):
 
 
 class TaskExecutionViewSet(OrgBulkModelViewSet):
-    queryset = TaskExecution.objects.all()
+    queryset = TaskExecution.objects.all().order_by('-date_created')
     serializer_class = TaskExecutionSerializer
-    filter_fields = ('execute_user', '_arguments_data')
+    filter_fields = ('execute_user', 'task_meta')
     search_fields = filter_fields
-    ordering_fields = ('date_start',)
+    ordering_fields = ('date_created', 'date_start')
     pagination_class = LimitOffsetPagination
     permission_classes = (IsValidUser,)
-
-    def filter_queryset(self, queryset):
-        queryset = super().filter_queryset(queryset)
-        task_meta_id = self.request.query_params.get('task')
-        queryset = queryset.filter(task_meta=task_meta_id)
-        return queryset
 
 
 class TaskExecute(APIView):
@@ -91,7 +82,5 @@ class TaskExecute(APIView):
         task_meta = get_object_or_none(TaskMeta, id=request.data.get('task_meta_id'))
         task = task_meta.task_info
         arguments_data = request.data.get('arguments_data')
-        # manual_execute_task(task, arguments_data, request.user.username)
-        # return Response({"task": task.id})
         t = manual_execute_task.delay(task, arguments_data, request.user.username)
         return Response({"task": t.id})

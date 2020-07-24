@@ -2,7 +2,9 @@
 import os
 import subprocess
 import datetime
+from functools import reduce
 
+from celery.result import allow_join_result
 from django.conf import settings
 from celery import shared_task, subtask
 from celery.exceptions import SoftTimeLimitExceeded
@@ -14,7 +16,7 @@ from .celery.decorator import (
     after_app_ready_start
 )
 from .celery.utils import create_or_update_celery_periodic_tasks
-from .models import Task, CommandExecution, CeleryTask
+from .models import Task, CommandExecution, CeleryTask, JobExecution
 
 logger = get_logger(__file__)
 
@@ -47,6 +49,55 @@ def manual_execute_task(task, arguments_data, execute_user):
         return result
     else:
         logger.error("No task found")
+
+
+@shared_task
+def manual_execute_job(job, arguments_data, execute_user):
+    job_task = job.start_job_task
+    if not job_task:
+        return None
+    task_id = manual_execute_job.request.id
+    logger.info(task_id)
+    tasks = [manual_execute_task.signature((task_meta.task_info, arguments_data, execute_user)) for task_meta in
+             job_task.task_meta.all()]
+    job_execution = JobExecution.objects.create(id=task_id, job=job, state='executing', arguments_data=arguments_data,
+                                                execute_user=execute_user)
+    job_execution.save()
+    loop_counter = 0
+    while len(tasks) > 0 and job_execution.state == 'executing':
+        loop_counter += 1
+        logger.info('current tasks %s', tasks)
+        from celery import group
+        with allow_join_result():
+            logger.info('begin to execute %s step', loop_counter)
+            executions = group(tasks)().get()
+        for e in executions:
+            logger.info("execution data %s", e)
+            logger.info('is success: %s', e.is_success)
+        executions_id = [str(exe.id) for exe in executions]
+        job_execution.add_task_execute_id(executions_id)
+        is_all_success = reduce(lambda x, y: x and y, [exe.is_success for exe in executions])
+        logger.info('current step %s execute finished, result is %s', loop_counter, is_all_success)
+        if is_all_success and job_task.success_next_job_task_id:
+            tasks = [manual_execute_task.signature((task_meta.task_info, arguments_data, execute_user)) for task_meta in
+                     job_task.success_next_job_task.task_meta.all()]
+            job_task = job_task.success_next_job_task
+
+        elif not is_all_success and job_task.failure_next_job_task_id:
+            tasks = [manual_execute_task.signature((task_meta.task_info, arguments_data, execute_user)) for task_meta in
+                     job_task.failure_next_job_task.task_meta.all()]
+            job_task = job_task.failure_next_job_task
+        else:
+            tasks = []
+            logger.info('no next step, set tasks empty')
+        job_execution.refresh_from_db()
+        logger.info('job execution current state is %s', job_execution.state)
+        if job_execution.state == 'cancel':
+            tasks = []
+            logger.warning('job is cancel')
+    logger.info('job execute finished')
+    job_execution.state = 'finish'
+    job_execution.save()
 
 
 @shared_task(soft_time_limit=60)
@@ -119,9 +170,17 @@ def hello(name, callback=None):
 # @register_as_period_task(interval=30)
 def hello123():
     print("{} Hello world".format(datetime.datetime.now().strftime("%H:%M:%S")))
+    from celery import group
+    with allow_join_result():
+        result = group([hello_callback.signature(('421',)), hello_callback.signature(('632',))])().get()
+        print(result)
+        result = group([hello_callback.signature(('abc',)), hello_callback.signature(('zzz',))])().get()
+        print(result)
+        return result
 
 
 @shared_task
 def hello_callback(result):
     print(result)
     print("Hello callback")
+    return 123

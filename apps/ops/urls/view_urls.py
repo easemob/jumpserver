@@ -30,6 +30,12 @@ urlpatterns = [
 
     path('file-task/', views.FileTaskListView.as_view(), name='file-task-list'),
     path('file-task/create', views.FileTaskCreateView.as_view(), name='file-task-create'),
-    path('file-task/<uuid:pk>/update', views.FileTaskUpdateView.as_view(), name='file-task-update')
+    path('file-task/<uuid:pk>/update', views.FileTaskUpdateView.as_view(), name='file-task-update'),
+
+    path('job/', views.JobListView.as_view(), name='job-list'),
+    path('job/create', views.JobCreateView.as_view(), name='job-create'),
+    path('job/detail/<uuid:pk>', views.JobDetailView.as_view(), name='job-detail'),
+    path('job/<uuid:pk>/execution/history/', views.JobExecutionHistoryView.as_view(), name='job-execution-history'),
+    path('job/execution/<uuid:pk>/detail/', views.JobExecutionDetailView.as_view(), name='job-execution-detail'),
 
 ]

@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 from rest_framework import serializers
-from ops.models import TaskMeta, FileDeployTask
+from ops.models import TaskMeta, FileDeployTask, TaskArgument
 from ops.serializer import TaskMetaSerializer
 
 
 class FileDeployTaskSerializer(serializers.ModelSerializer):
     task_meta = TaskMetaSerializer(many=False)
+    arguments = serializers.PrimaryKeyRelatedField(many=True, queryset=TaskArgument.objects.all())
 
     def create(self, validated_data):
         task_meta_data = validated_data.pop('task_meta')

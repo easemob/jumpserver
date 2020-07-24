@@ -6,3 +6,4 @@ from .celery import *
 from .command import *
 from .task import *
 from .argument import *
+from .job import *

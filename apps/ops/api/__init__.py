@@ -7,3 +7,4 @@ from .task import *
 from .upload_file import *
 from .argument import *
 from .file_task import *
+from .job import *

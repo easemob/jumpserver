@@ -4,6 +4,7 @@
 import uuid
 import json
 
+from celery import current_task
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import ugettext
@@ -157,7 +158,7 @@ class FileDeployTask(BaseTask):
 
     def manual_run(self, arguments_data, execute_user):
         super().manual_run(arguments_data)
-        self.run(arguments_data, execute_user, manual=True)
+        return self.run(arguments_data, execute_user, manual=True)
 
     def _get_file_args(self, arguments_data):
         files_args = []
@@ -173,7 +174,12 @@ class FileDeployTask(BaseTask):
     def run(self, arguments_data, execute_user='system', manual=True):
         print('-' * 10 + ' ' + ugettext('Task start') + ' ' + '-' * 10)
         date_start = timezone.now()
-        execution = TaskExecution.objects.create(execute_user=execute_user, manual=manual, task_meta=self.task_meta,
+        try:
+            hid = current_task.request.id
+        except AttributeError:
+            hid = str(uuid.uuid4())
+        execution = TaskExecution.objects.create(id=hid, execute_user=execute_user, manual=manual,
+                                                 task_meta=self.task_meta,
                                                  date_start=date_start)
         execution.arguments_data = arguments_data
         runner = CopyRunner(self.inventory)
@@ -187,3 +193,4 @@ class FileDeployTask(BaseTask):
         execution.date_finished = timezone.now()
         execution.save()
         print('-' * 10 + ' ' + ugettext('Task end') + ' ' + '-' * 10)
+        return execution

@@ -15,7 +15,7 @@
                     <div class="tab-content">
                         <div class="ibox-content" style="border-width: 0;padding-top: 40px;">
                             <div class="uc pull-left m-r-10" style="padding-bottom: 5px">
-                                <button class="btn btn-sm btn-primary btn-template-create"> {% trans "创建任务" %} </button>
+                                <button class="btn btn-sm btn-primary btn-template-create"> {% trans "创建工作流" %} </button>
                             </div>
 
                             <table class="table table-striped table-bordered table-hover "
@@ -24,7 +24,7 @@
                                 <thead>
                                 <tr>
                                     <th class="text-center">{% trans 'Name' %}</th>
-                                    <th class="text-center">{% trans 'Type' %}</th>
+                                    <th class="text-center">{% trans 'Description' %}</th>
                                     <th class="text-center">{% trans 'Periodic' %}</th>
                                     <th class="text-center">{% trans 'User' %}</th>
                                     <th class="text-center">{% trans 'Date' %}</th>
@@ -46,14 +46,6 @@
     <script src="{% static 'js/plugins/datepicker/bootstrap-datepicker.js' %}"></script>
     <script>
       var asset_table = 0
-      var asset_table_data = {}
-
-      function showInfo(asset_id) {
-        var $body_modal = $('#content_modal')
-        $body_modal.modal({show: true})
-        $('#content-body').empty().text(JSON.stringify(asset_table_data[asset_id], null, 4))
-        $body_modal.modal({show: true})
-      }
 
       function initTable() {
         var options = {
@@ -63,7 +55,7 @@
               targets: 0, createdCell: function (td, cellData, rowData) {
                 cellData = htmlEscape(cellData);
                 var html = ''
-                var the_url = "{% url 'ops:task-detail-info' pk=DEFAULT_PK %}".replace("{{ DEFAULT_PK }}", rowData.id);
+                var the_url = "{% url 'ops:job-detail' pk=DEFAULT_PK %}".replace("{{ DEFAULT_PK }}", rowData.id);
                 html += '<a href="' + the_url + '">' + cellData + '</a>'
                 $(td).html(html);
               }
@@ -82,10 +74,10 @@
               },
             },
           ],
-          ajax_url: '{% url "api-ops:tasks-management-list" %}?task_type=file_deploy',
+          ajax_url: '{% url "api-ops:job-list" %}',
           columns: [
             {data: "name", orderable: false},
-            {data: "task_type", orderable: false},
+            {data: "description", orderable: false},
             {data: "is_periodic", orderable: false},
             {data: "created_by", orderable: false},
             {data: "date_created", orderable: false},
@@ -99,7 +91,7 @@
       $(document).ready(function () {
         initTable()
       }).on('click', '.btn-template-create', function () {
-        var url = "{% url 'ops:file-task-create' %}";
+        var url = "{% url 'ops:job-create' %}";
         window.open(url, '_self');
       })
 

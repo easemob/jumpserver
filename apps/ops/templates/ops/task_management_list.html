@@ -18,21 +18,21 @@
                         <div class="ibox-content" style="border-width: 0;padding-top: 40px;">
                             <div class="uc pull-left m-r-10" style="padding-bottom: 5px">
                                 <form action="" class="form-inline" style="display: inline-block;">
-                                    <div class="form-group" id="date">
-                                        <div class="input-daterange input-group" id="datepicker"
-                                             data-provide="datepicker">
-                                            <span class="input-group-addon"><i class="fa fa-calendar"></i></span>
-                                            <input type="text"
-                                                   class="input-sm form-control date-search"
-                                                   style="width: 150px;"
-                                                   name="date_from">
-                                            <span class="input-group-addon">to</span>
-                                            <input type="text"
-                                                   class="input-sm form-control date-search"
-                                                   style="width: 150px;"
-                                                   name="date_to">
-                                        </div>
-                                    </div>
+{#                                    <div class="form-group" id="date">#}
+{#                                        <div class="input-daterange input-group" id="datepicker"#}
+{#                                             data-provide="datepicker">#}
+{#                                            <span class="input-group-addon"><i class="fa fa-calendar"></i></span>#}
+{#                                            <input type="text"#}
+{#                                                   class="input-sm form-control date-search"#}
+{#                                                   style="width: 150px;"#}
+{#                                                   name="date_from">#}
+{#                                            <span class="input-group-addon">to</span>#}
+{#                                            <input type="text"#}
+{#                                                   class="input-sm form-control date-search"#}
+{#                                                   style="width: 150px;"#}
+{#                                                   name="date_to">#}
+{#                                        </div>#}
+{#                                    </div>#}
 
                                     <div class="form-group" style="padding-left:20px">
                                         <label class="control-label">任务类型</label>
@@ -125,7 +125,8 @@
               },
             },
           ],
-          ajax_url: '{% url "api-ops:tasks-management-list" %}?date_from=' + date_from + '&date_to=' + date_to,
+          ajax_url: '{% url "api-ops:tasks-management-list" %}',
+          {#ajax_url: '{% url "api-ops:tasks-management-list" %}?date_from=' + date_from + '&date_to=' + date_to,#}
           columns: [
             {data: "id", orderable: false},
             {data: "name", orderable: false},
@@ -141,7 +142,8 @@
       }
 
       function filterData() {
-        asset_table.ajax.url('{% url "api-ops:tasks-management-list" %}?task_type=' + task_type + '&date_from=' + date_from + '&date_to=' + date_to)
+        {#asset_table.ajax.url('{% url "api-ops:tasks-management-list" %}?task_type=' + task_type + '&date_from=' + date_from + '&date_to=' + date_to)#}
+        asset_table.ajax.url('{% url "api-ops:tasks-management-list" %}?task_type=' + task_type)
         asset_table.ajax.reload()
       }
 
@@ -153,7 +155,6 @@
         $('#datepicker').datepicker({
           format: "yyyy-mm-dd",
           todayBtn: "linked",
-          startDate: '-3d',
           keyboardNavigation: false,
           forceParse: false,
           calendarWeeks: true,

@@ -19,6 +19,7 @@ bulk_router.register(r'tasks-file-deploy', api.FileDeployTaskViewSet, 'task-file
 bulk_router.register(r'tasks-management', api.TaskManagementViewSet, 'tasks-management')
 bulk_router.register(r'tasks-argument', api.TaskArgumentViewSet, 'task-argument')
 bulk_router.register(r'tasks-executions', api.TaskExecutionViewSet, 'task-execution')
+bulk_router.register(r'job-executions', api.JobExecutionViewSet, 'job-execution')
 
 urlpatterns = [
     path('tasks/<uuid:pk>/run/', api.TaskRun.as_view(), name='task-run'),
@@ -26,7 +27,11 @@ urlpatterns = [
     path('celery/task/<uuid:pk>/log/', api.CeleryTaskLogApi.as_view(), name='celery-task-log'),
     path('celery/task/<uuid:pk>/result/', api.CeleryResultApi.as_view(), name='celery-result'),
     path('file/upload/', api.UploadFileApi.as_view(), name='file-upload'),
-    path('file/delete/', api.DeleteFileApi.as_view(), name='file-delete')
+    path('file/delete/', api.DeleteFileApi.as_view(), name='file-delete'),
+    path('job/create/', api.JobApiView.as_view(), name='job-create'),
+    path('job/list/', api.JobApiView.as_view(), name='job-list'),
+    path('job/<uuid:pk>/run/', api.JobExecute.as_view(), name='job-execute'),
+    path('job/<uuid:pk>remove/', api.JobApiView.as_view(), name='job-remove'),
 ]
 
 urlpatterns += router.urls

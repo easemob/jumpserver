@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block custom_head_css_js %}
+    <link href="{% static "css/plugins/sweetalert/sweetalert.css" %}" rel="stylesheet">
+    <script src="{% static "js/plugins/sweetalert/sweetalert.min.js" %}"></script>
+    <style>
+        .table td, th {
+            text-align: center
+        }
+    </style>
+{% endblock %}
+{% block content %}
+    <div class="wrapper wrapper-content animated fadeInRight">
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="ibox float-e-margins">
+                    <div class="tab-content">
+                        <div class="col-sm-12" style="padding-left: 0">
+                            <div class="ibox float-e-margins">
+                                <div class="ibox-title">
+                                    <span style="float: left">{% trans '执行流程' %}</span>
+                                    <div class="ibox-tools">
+                                        <a class="collapse-link">
+                                            <i class="fa fa-chevron-up"></i>
+                                        </a>
+                                        <a class="dropdown-toggle" data-toggle="dropdown" href="#">
+                                            <i class="fa fa-wrench"></i>
+                                        </a>
+                                        <ul class="dropdown-menu dropdown-user">
+                                        </ul>
+                                        <a class="close-link">
+                                            <i class="fa fa-times"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                                <div class="ibox-content">
+                                    <table class="table table-hover " id="task-history-list-table">
+                                        <thead>
+                                        <tr>
+                                            <th>{% trans 'Step' %}</th>
+                                            <th>{% trans 'Name' %}</th>
+                                            <th>{% trans 'Date start' %}</th>
+                                            <th>{% trans 'Is success' %}</th>
+                                            <th>{% trans '执行时间' %}</th>
+                                            <th>{% trans '日志' %}</th>
+                                        </tr>
+                                        {% for execution_list in  task_execution %}
+                                            {% for e in execution_list %}
+                                                <tr>
+                                                    <td>第{{ forloop.parentloop.counter }}步</td>
+                                                    <td>{{ e.name }}</td>
+                                                    <td>{{ e.date_start }}</td>
+                                                    {% if e.is_success %}
+                                                        <td><i class="fa fa-check text-navy"></i></td>
+                                                    {% else %}
+                                                        <td><i class="fa fa-times text-danger"></i></td>
+                                                    {% endif %}
+                                                    <td>{{ e.timedelta }}(s)</td>
+                                                    <td>
+                                                        <button class="btn btn-info btn-xs"
+                                                                onclick="openDetail('{{ e.id }}')">查看
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                        {% endfor %}
+                                        </thead>
+                                        <tbody>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% include 'ops/_json_content_modal.html' %}
+{% endblock %}
+{% block custom_foot_js %}
+    <script>
+      var table_data = {}
+      var execution_table = 0
+
+      function openDetail(asset_id) {
+        var url = '{% url "ops:celery-task-log" pk=DEFAULT_PK %}'.replace("{{ DEFAULT_PK }}", asset_id)
+        window.open(url, '', 'width=800,height=600')
+      }
+
+      $(document).ready(function () {
+
+      })
+
+    </script>
+{% endblock %}
