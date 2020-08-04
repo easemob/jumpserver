@@ -28,6 +28,7 @@
                                     <th class="text-center">{% trans 'Periodic' %}</th>
                                     <th class="text-center">{% trans 'User' %}</th>
                                     <th class="text-center">{% trans 'Date' %}</th>
+                                    <th class="text-center">{% trans 'Action' %}</th>
                                 </tr>
                                 </thead>
                                 <tbody>
@@ -73,6 +74,15 @@
                 $(td).html(html);
               },
             },
+            {
+              targets: 5, createdCell: function (td, cellData) {
+                cellData = htmlEscape(cellData);
+                var html = ''
+                var the_url = "{% url 'ops:cron-job-create' pk=DEFAULT_PK %}".replace("{{ DEFAULT_PK }}", cellData);
+                html += '<a href="' + the_url + '">创建定时任务</a>'
+                $(td).html(html);
+              }
+            },
           ],
           ajax_url: '{% url "api-ops:job-list" %}',
           columns: [
@@ -81,6 +91,7 @@
             {data: "is_periodic", orderable: false},
             {data: "created_by", orderable: false},
             {data: "date_created", orderable: false},
+            {data: "id", orderable: false},
           ],
           op_html: $('#actions').html()
         };

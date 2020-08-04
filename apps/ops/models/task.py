@@ -27,9 +27,6 @@ class TaskMeta(models.Model):
     name = models.CharField(max_length=128, verbose_name=_('Name'))
     task_type = models.CharField(choices=TASK_TYPE_CHOICE, max_length=64)
     description = models.CharField(max_length=128, verbose_name=_('Description'))
-    crontab = models.CharField(verbose_name=_("Crontab"), null=True, blank=True, max_length=128,
-                               help_text=_("5 * * * *"))
-    is_periodic = models.BooleanField(default=False)
     created_by = models.CharField(max_length=128, blank=True, default='')
     date_created = models.DateTimeField(auto_now_add=True, db_index=True)
 
@@ -41,6 +38,31 @@ class TaskMeta(models.Model):
     @property
     def task_executions(self):
         return TaskExecution.objects.filter(task_meta=self.id)
+
+
+class CrontabTask(models.Model):
+    id = models.UUIDField(default=uuid.uuid4, primary_key=True)
+    name = models.CharField(max_length=128, verbose_name=_('Name'))
+    task_meta = models.ForeignKey('ops.TaskMeta', on_delete=models.CASCADE)
+    description = models.CharField(max_length=128, verbose_name=_('Description'))
+    crontab = models.CharField(verbose_name=_("Crontab"), null=True, blank=True, max_length=128,
+                               help_text=_("5 * * * *"))
+    enabled = models.BooleanField(default=True)
+    _arguments_data = models.TextField(blank=True, null=True, )
+
+    @property
+    def arguments_data(self):
+        if self._arguments_data:
+            return json.loads(self._arguments_data)
+        else:
+            return {}
+
+    @arguments_data.setter
+    def arguments_data(self, item):
+        self._arguments_data = json.dumps(item)
+
+    created_by = models.CharField(max_length=128, blank=True, default='')
+    date_created = models.DateTimeField(auto_now_add=True, db_index=True)
 
 
 class BaseTask(models.Model):
@@ -66,6 +88,9 @@ class BaseTask(models.Model):
             raise ParseError(detail='', code=400)
 
     def manual_run(self, arguments_data):
+        self._validate_arguments_data(arguments_data)
+
+    def interval_run(self, arguments_data):
         self._validate_arguments_data(arguments_data)
 
     def get_replaced_arguments(self, value, arguments_data):
@@ -159,6 +184,9 @@ class FileDeployTask(BaseTask):
     def manual_run(self, arguments_data, execute_user):
         super().manual_run(arguments_data)
         return self.run(arguments_data, execute_user, manual=True)
+
+    def interval_run(self, arguments_data, execute_user):
+        return self.run(arguments_data, execute_user, manual=False)
 
     def _get_file_args(self, arguments_data):
         files_args = []

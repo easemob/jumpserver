@@ -4,7 +4,6 @@
 {% load i18n %}
 {% load common_tags %}
 {% block custom_head_css_js %}
-    <link href="{% static 'css/plugins/datepicker/datepicker3.css' %}" rel="stylesheet">
     <link href="{% static 'css/plugins/select2/select2.min.css' %}" rel="stylesheet">
     <script src="{% static 'js/plugins/select2/select2.full.min.js' %}"></script>
 {% endblock %}
@@ -18,22 +17,6 @@
                         <div class="ibox-content" style="border-width: 0;padding-top: 40px;">
                             <div class="uc pull-left m-r-10" style="padding-bottom: 5px">
                                 <form action="" class="form-inline" style="display: inline-block;">
-{#                                    <div class="form-group" id="date">#}
-{#                                        <div class="input-daterange input-group" id="datepicker"#}
-{#                                             data-provide="datepicker">#}
-{#                                            <span class="input-group-addon"><i class="fa fa-calendar"></i></span>#}
-{#                                            <input type="text"#}
-{#                                                   class="input-sm form-control date-search"#}
-{#                                                   style="width: 150px;"#}
-{#                                                   name="date_from">#}
-{#                                            <span class="input-group-addon">to</span>#}
-{#                                            <input type="text"#}
-{#                                                   class="input-sm form-control date-search"#}
-{#                                                   style="width: 150px;"#}
-{#                                                   name="date_to">#}
-{#                                        </div>#}
-{#                                    </div>#}
-
                                     <div class="form-group" style="padding-left:20px">
                                         <label class="control-label">任务类型</label>
 
@@ -57,9 +40,9 @@
                                     <th class="text-center"><input type="checkbox" class="ipt_check_all"></th>
                                     <th class="text-center">{% trans 'Name' %}</th>
                                     <th class="text-center">{% trans 'Type' %}</th>
-                                    <th class="text-center">{% trans 'Periodic' %}</th>
                                     <th class="text-center">{% trans 'User' %}</th>
                                     <th class="text-center">{% trans 'Date' %}</th>
+                                    <th class="text-center">{% trans 'Action' %}</th>
 
                                 </tr>
                                 </thead>
@@ -91,7 +74,6 @@
 {% endblock %}
 
 {% block custom_foot_js %}
-    <script src="{% static 'js/plugins/datepicker/bootstrap-datepicker.js' %}"></script>
     <script>
       var asset_table = 0
       var date_from = "{{ date_from|date:'Y-m-d' }}"
@@ -112,17 +94,20 @@
               }
             },
             {
-              targets: 3, createdCell: function (td, cellData, rowData) {
-                var html = cellData ? rowData.crontab : '<i class ="fa fa-times text-danger"> </i>'
-                $(td).html(html);
-              },
-            },
-            {
-              targets: 5, createdCell: function (td, cellData) {
+              targets: 4, createdCell: function (td, cellData) {
                 var html = ''
                 html += new Date(htmlEscape(cellData)).toLocaleDateString();
                 $(td).html(html);
               },
+            },
+            {
+              targets: 5, createdCell: function (td, cellData, rowData) {
+                cellData = htmlEscape(cellData);
+                var html = ''
+                var the_url = "{% url 'ops:cron-task-create' pk=DEFAULT_PK %}".replace("{{ DEFAULT_PK }}", rowData.id);
+                html += '<a href="' + the_url + '">创建定时任务</a>'
+                $(td).html(html);
+              }
             },
           ],
           ajax_url: '{% url "api-ops:tasks-management-list" %}',
@@ -131,9 +116,9 @@
             {data: "id", orderable: false},
             {data: "name", orderable: false},
             {data: "task_type", orderable: false},
-            {data: "is_periodic", orderable: false},
             {data: "created_by", orderable: false},
             {data: "date_created"},
+            {data: "id", orderable: false},
           ],
           op_html: $('#actions').html()
         };
@@ -152,23 +137,9 @@
         $('#task-type').select2()
         $('input[name="date_from"]').val(date_from)
         $('input[name="date_to"]').val(date_to)
-        $('#datepicker').datepicker({
-          format: "yyyy-mm-dd",
-          todayBtn: "linked",
-          keyboardNavigation: false,
-          forceParse: false,
-          calendarWeeks: true,
-          autoclose: true,
-        }).on('changeDate', function () {
-          date_from = $('input[name="date_from"]').val()
-          date_to = $('input[name="date_to"]').val()
-          filterData()
-        });
-
       }).on('change', '#task-type', function () {
         task_type = $(this).val()
         filterData()
-
       }).on('click', '#btn_bulk_update', function () {
         var action = $('#slct_bulk_update').val();
         var id_list = asset_table.selected;

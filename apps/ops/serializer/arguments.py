@@ -8,5 +8,3 @@ class TaskArgumentSerializer(serializers.ModelSerializer):
     class Meta:
         model = TaskArgument
         fields = '__all__'
-
-

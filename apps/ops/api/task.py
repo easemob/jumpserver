@@ -1,20 +1,23 @@
 # -*- coding: utf-8 -*-
 from django.utils import timezone
+from django_celery_beat.models import PeriodicTask
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from common.permissions import IsValidUser
 from common.utils import get_object_or_none
-from ops.models import TaskMeta, TaskExecution
-from ops.serializer import TaskMetaSerializer, TaskExecutionSerializer
+from ops.celery.utils import create_or_update_celery_periodic_tasks
+from ops.models import TaskMeta, TaskExecution, CrontabTask
+from ops.serializer import TaskMetaSerializer, TaskExecutionSerializer, CrontabTaskSerializer
 from orgs.mixins import OrgBulkModelViewSet
-from ops.tasks import manual_execute_task
+from ops.tasks import manual_execute_task, interval_execute_task
 
 __all__ = [
     'TaskManagementViewSet',
     'TaskExecute',
-    'TaskExecutionViewSet'
+    'TaskExecutionViewSet',
+    'CrontabTaskViewSet'
 ]
 
 
@@ -84,3 +87,41 @@ class TaskExecute(APIView):
         arguments_data = request.data.get('arguments_data')
         t = manual_execute_task.delay(task, arguments_data, request.user.username)
         return Response({"task": t.id})
+
+
+class CrontabTaskViewSet(OrgBulkModelViewSet):
+    queryset = CrontabTask.objects.all().order_by('-date_created')
+    serializer_class = CrontabTaskSerializer
+    filter_fields = ('name',)
+    search_fields = filter_fields
+    ordering_fields = ('date_created',)
+    pagination_class = LimitOffsetPagination
+    permission_classes = (IsValidUser,)
+
+    def create_crontab_celery_task(self, detail):
+        tasks = {
+            detail.name: {
+                "task": interval_execute_task.name,
+                "crontab": detail.crontab,
+                "args": (str(detail.task_meta.id), detail.arguments_data, 'crontab'),
+                "enabled": detail.enabled,
+            }
+        }
+        create_or_update_celery_periodic_tasks(tasks)
+
+    def perform_create(self, serializer):
+        instance = serializer.save()
+        instance.created_by = self.request.user.username
+        instance.save()
+        self.create_crontab_celery_task(instance)
+
+    def perform_update(self, serializer):
+        instance = serializer.save()
+        instance.created_by = self.request.user.username
+        instance.save()
+
+    def perform_destroy(self, instance):
+        periodic_task = get_object_or_none(PeriodicTask, name=instance.name)
+        if periodic_task:
+            periodic_task.delete()
+        instance.delete()

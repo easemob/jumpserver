@@ -16,7 +16,7 @@ from .celery.decorator import (
     after_app_ready_start
 )
 from .celery.utils import create_or_update_celery_periodic_tasks
-from .models import Task, CommandExecution, CeleryTask, JobExecution
+from .models import Task, CommandExecution, CeleryTask, JobExecution, TaskMeta, Job
 
 logger = get_logger(__file__)
 
@@ -52,11 +52,20 @@ def manual_execute_task(task, arguments_data, execute_user):
 
 
 @shared_task
-def manual_execute_job(job, arguments_data, execute_user):
+def interval_execute_task(task_meta_id, arguments_data, execute_user):
+    task_meta = get_object_or_none(TaskMeta, id=task_meta_id)
+    if task_meta:
+        task = task_meta.task_info
+        result = task.interval_run(arguments_data, execute_user)
+        return result
+    else:
+        logger.error("No task found")
+
+
+def execute_job(job, arguments_data, execute_user, task_id):
     job_task = job.start_job_task
     if not job_task:
         return None
-    task_id = manual_execute_job.request.id
     logger.info(task_id)
     tasks = [manual_execute_task.signature((task_meta.task_info, arguments_data, execute_user)) for task_meta in
              job_task.task_meta.all()]
@@ -98,6 +107,19 @@ def manual_execute_job(job, arguments_data, execute_user):
     logger.info('job execute finished')
     job_execution.state = 'finish'
     job_execution.save()
+
+
+@shared_task
+def interval_execute_job(job_id, arguments_data):
+    job = get_object_or_none(Job, id=job_id)
+    if not job:
+        logger.error("No job found")
+    execute_job(job, arguments_data, 'crontab', interval_execute_job.request.id)
+
+
+@shared_task
+def manual_execute_job(job, arguments_data, execute_user):
+    execute_job(job, arguments_data, execute_user, manual_execute_job.request.id)
 
 
 @shared_task(soft_time_limit=60)

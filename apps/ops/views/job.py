@@ -14,7 +14,9 @@ __all__ = [
     'JobUpdateView',
     'JobCreateView',
     'JobExecutionHistoryView',
-    'JobExecutionDetailView'
+    'JobExecutionDetailView',
+    'CronTabJobListView',
+    'CronTabJobCreateView'
 ]
 
 
@@ -99,6 +101,33 @@ class JobExecutionDetailView(PermissionsMixin, DetailView):
             'app': _('Ops'),
             'action': _('执行详情'),
             'task_execution': self.get_task_execution()
+        }
+        kwargs.update(context)
+        return super().get_context_data(**kwargs)
+
+
+class CronTabJobListView(PermissionsMixin, TemplateView):
+    template_name = 'ops/crontab_job_list.html'
+    permission_classes = [IsOrgAdmin]
+
+    def get_context_data(self, **kwargs):
+        context = {
+            'app': _('Ops'),
+            'action': _('定时工作流管理'),
+        }
+        kwargs.update(context)
+        return super().get_context_data(**kwargs)
+
+
+class CronTabJobCreateView(PermissionsMixin, DetailView):
+    template_name = 'ops/crontab_job_create.html'
+    permission_classes = [IsOrgAdmin]
+    model = Job
+
+    def get_context_data(self, **kwargs):
+        context = {
+            'app': _('Ops'),
+            'action': _('定时工作流创建'),
         }
         kwargs.update(context)
         return super().get_context_data(**kwargs)

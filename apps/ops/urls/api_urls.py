@@ -17,6 +17,8 @@ router.register(r'command-executions', api.CommandExecutionViewSet, 'command-exe
 bulk_router = BulkRouter()
 bulk_router.register(r'tasks-file-deploy', api.FileDeployTaskViewSet, 'task-file-deploy')
 bulk_router.register(r'tasks-management', api.TaskManagementViewSet, 'tasks-management')
+bulk_router.register(r'crontab-tasks', api.CrontabTaskViewSet, 'crontab-task')
+bulk_router.register(r'crontab-job', api.CrontabJobViewSet, 'crontab-job')
 bulk_router.register(r'tasks-argument', api.TaskArgumentViewSet, 'task-argument')
 bulk_router.register(r'tasks-executions', api.TaskExecutionViewSet, 'task-execution')
 bulk_router.register(r'job-executions', api.JobExecutionViewSet, 'job-execution')

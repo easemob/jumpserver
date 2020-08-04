@@ -94,4 +94,3 @@ def get_celery_task_log_path(task_id):
     path = os.path.join(settings.CELERY_LOG_DIR, rel_path)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     return path
-

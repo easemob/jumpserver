@@ -25,7 +25,6 @@
                                 <tr>
                                     <th class="text-center">{% trans 'Name' %}</th>
                                     <th class="text-center">{% trans 'Type' %}</th>
-                                    <th class="text-center">{% trans 'Periodic' %}</th>
                                     <th class="text-center">{% trans 'User' %}</th>
                                     <th class="text-center">{% trans 'Date' %}</th>
                                 </tr>
@@ -69,13 +68,7 @@
               }
             },
             {
-              targets: 2, createdCell: function (td, cellData, rowData) {
-                var html = cellData ? rowData.crontab : '<i class ="fa fa-times text-danger"> </i>'
-                $(td).html(html);
-              },
-            },
-            {
-              targets: 4, createdCell: function (td, cellData) {
+              targets: 3, createdCell: function (td, cellData) {
                 var html = ''
                 html += new Date(htmlEscape(cellData)).toLocaleDateString();
                 $(td).html(html);
@@ -86,7 +79,6 @@
           columns: [
             {data: "name", orderable: false},
             {data: "task_type", orderable: false},
-            {data: "is_periodic", orderable: false},
             {data: "created_by", orderable: false},
             {data: "date_created", orderable: false},
           ],

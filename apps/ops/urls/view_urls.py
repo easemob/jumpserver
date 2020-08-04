@@ -38,4 +38,9 @@ urlpatterns = [
     path('job/<uuid:pk>/execution/history/', views.JobExecutionHistoryView.as_view(), name='job-execution-history'),
     path('job/execution/<uuid:pk>/detail/', views.JobExecutionDetailView.as_view(), name='job-execution-detail'),
 
+    path('crontab/job/', views.CronTabJobListView.as_view(), name='cron-job-list'),
+    path('crontab/job/<uuid:pk>/create', views.CronTabJobCreateView.as_view(), name='cron-job-create'),
+    path('crontab/task/', views.CronTabTaskListView.as_view(), name='cron-task-list'),
+    path('task/crontab/<uuid:pk>/create', views.CronTabTaskCreateView.as_view(), name='cron-task-create'),
+
 ]

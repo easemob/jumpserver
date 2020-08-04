@@ -1,0 +1,178 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load i18n %}
+{% load common_tags %}
+{% load bootstrap3 %}
+
+{% block custom_head_css_js %}
+    <link href="{% static 'css/plugins/select2/select2.min.css' %}" rel="stylesheet">
+    <style type="text/css">
+    </style>
+{% endblock %}
+
+{% block content %}
+    <div class="wrapper wrapper-content">
+        <div class="col-lg-12 animated fadeInRight" id="split-right">
+            <div class="ibox float-e-margins">
+                <div class="ibox-title">
+                    <h5>
+                        {% block box-title %}
+                            创建【{{ object.name }}】的定时工作流
+                        {% endblock %}
+                    </h5>
+                    <div class="ibox-tools">
+                        <a class="collapse-link">
+                            <i class="fa fa-chevron-up"></i>
+                        </a>
+                        <a class="dropdown-toggle" data-toggle="dropdown" href="#">
+                            <i class="fa fa-wrench"></i>
+                        </a>
+                        <a class="close-link">
+                            <i class="fa fa-times"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="ibox-content">
+
+                    <form id="task-form" method="post" action="" class="form-horizontal">
+                        {% csrf_token %}
+                        <div class="form-group required">
+                            <label for="jobname" class="col-sm-2 control-label">任务名称</label>
+                            <div class="col-sm-9">
+                                <input required="true" type="text" class="form-control" name="name" id="jobname"
+                                       placeholder="作业名称">
+                            </div>
+                        </div>
+
+                        <div class="form-group required">
+                            <label for="crontab" class="col-sm-2 control-label">crontab</label>
+                            <div class="col-sm-9">
+                                <input required="true" type="text" class="form-control" name="crontab" id="crontab"
+                                       placeholder="* * * * *" value="">
+                            </div>
+                        </div>
+
+                        <div class="form-group required">
+                            <label for="crontab" class="col-sm-2 control-label">是否开启</label>
+                            <div class="col-sm-9">
+                                <select name="enabled" class="form-control" id="enabled">
+                                    <option value="true">开启</option>
+                                    <option value="false">禁用</option>
+                                </select>
+                            </div>
+                        </div>
+                        {% for args in object.all_task_arguments_unique %}
+                            <div class="form-group required argument">
+                                <label for="{{ args.id }}" class="col-sm-2 control-label">执行变量({{ args.name }})</label>
+                                <div class="col-sm-9">
+                                    <input required="true" type="text" class="form-control" name="{{ args.id }}"
+                                           id="{{ args.id }}"
+                                           data-regex="{{ args.default_value }}"
+                                           data-description="{{ args.constraint_description }}"
+                                           value="{{ args.default_value }}" data-id="{{ args.id }}" placeholder="">
+                                </div>
+                            </div>
+                        {% endfor %}
+
+
+                        <div class="form-group required">
+                            <label for="job-description" class="col-sm-2 control-label">任务描述</label>
+                            <div class="col-sm-9">
+                                <textarea required name="description" cols="40" rows="5" maxlength="128"
+                                          class="form-control"
+                                          title="" id="job-description"></textarea>
+                                </textarea>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-sm-9 col-sm-offset-2">
+                                <button style="width:100%" class="btn btn-primary" type="submit">
+                                    {% block submit-button-content %}
+                                        创 建
+                                    {% endblock %}
+
+                                </button>
+                            </div>
+                        </div>
+
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block custom_foot_js %}
+    <script>
+      var systemUserId = null;
+      var formData = {
+        job: "{{ object.id }}"
+      }
+
+      function validateInputValue() {
+        arguments_data = {}
+        var is_validated = true
+        $.each($('.argument input'), function () {
+          var constraint_regex = $(this).data('regex')
+          var value = $(this).val()
+          var id = $(this).attr('id')
+          var constrain_description = $(this).data('description')
+          var is_pass = new RegExp(constraint_regex).test(value)
+          if (!is_pass) {
+            swal(value + '格式不对', constrain_description, 'error')
+            is_validated = false
+          } else {
+            arguments_data[id] = value
+          }
+        })
+        formData.arguments_data = arguments_data
+        return is_validated
+      }
+
+      function handleFormData(data) {
+        $.each($('.argument input'), function () {
+          delete data[$(this).attr('id')]
+        })
+        var enabled = data.enabled === 'true' ? true : false
+        Object.assign(formData, data, {enabled})
+        return formData
+      }
+
+      {% block extra_js_function %}
+
+      {% endblock %}
+
+      $(document).ready(function () {
+
+      }).on('submit', '#task-form', function (evt) {
+        evt.preventDefault();
+        if (!validateInputValue()) {
+          return false
+        } else {
+          var data = $(this).serializeObject()
+          var url = '{% url "api-ops:crontab-job-list" %}'
+          var redirect_url = '{% url "ops:cron-job-list" %}'
+          var method = 'POST'
+          var props = {
+            url: url,
+            data: handleFormData(data),
+            method: method,
+            form: $('#task-form'),
+            redirect_to: '',
+            error: function (jqXHR) {
+              toastr.error(jqXHR.responseText)
+            },
+            success: function () {
+              toastr.success("定时任务创建完毕")
+              setTimeout(function () {
+                window.location.href = redirect_url
+              }, 500)
+            }
+          }
+          console.log(props)
+          formSubmit(props)
+        }
+      })
+    </script>
+{% endblock %}

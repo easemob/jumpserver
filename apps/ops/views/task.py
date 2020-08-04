@@ -12,7 +12,9 @@ __all__ = [
     'TaskManagementListView',
     'TaskDetailInfoView',
     'TaskExecutionHistoryView',
-    'TaskUpdateView'
+    'TaskUpdateView',
+    'CronTabTaskListView',
+    'CronTabTaskCreateView'
 ]
 
 
@@ -69,3 +71,30 @@ class TaskUpdateView(PermissionsMixin, View):
         task_type = task_meta.task_type
         if task_type == 'file_deploy':
             return redirect(reverse('ops:file-task-update', kwargs={'pk': str(task_meta.id)}))
+
+
+class CronTabTaskListView(PermissionsMixin, TemplateView):
+    template_name = 'ops/crontab_task_list.html'
+    permission_classes = [IsOrgAdmin]
+
+    def get_context_data(self, **kwargs):
+        context = {
+            'app': _('Ops'),
+            'action': _('定时任务管理'),
+        }
+        kwargs.update(context)
+        return super().get_context_data(**kwargs)
+
+
+class CronTabTaskCreateView(PermissionsMixin, DetailView):
+    template_name = 'ops/crontab_task_create.html'
+    permission_classes = [IsOrgAdmin]
+    model = TaskMeta
+
+    def get_context_data(self, **kwargs):
+        context = {
+            'app': _('Ops'),
+            'action': _('定时任务创建'),
+        }
+        kwargs.update(context)
+        return super().get_context_data(**kwargs)

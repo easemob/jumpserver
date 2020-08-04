@@ -43,7 +43,7 @@ class JobExecution(models.Model):
     state = models.CharField(choices=EXECUTION_STATE, max_length=32)
     execute_user = models.CharField(max_length=128, blank=True, default='system')
     date_execute = models.DateTimeField(auto_now_add=True)
-    _task_execute_id = models.TextField(default="[]")
+    _task_execute_id = models.TextField()
     _arguments_data = models.TextField(blank=True, null=True, )
 
     @property
@@ -59,7 +59,10 @@ class JobExecution(models.Model):
 
     @property
     def task_execute_id(self):
-        return json.loads(self._task_execute_id)
+        if self._task_execute_id:
+            return json.loads(self._task_execute_id)
+        else:
+            return []
 
     @property
     def task_execute(self):
@@ -72,7 +75,7 @@ class JobExecution(models.Model):
         return result
 
     def add_task_execute_id(self, id_list):
-        task_ids = json.loads(self._task_execute_id)
+        task_ids = self.task_execute_id
         task_ids.append(id_list)
         self._task_execute_id = json.dumps(task_ids)
         self.save()
@@ -135,3 +138,27 @@ class Job(models.Model):
             job_task_id = str(new_job_task.id)
         self.start_job_task_id = job_task_id
         self.save()
+
+
+class CrontabJob(models.Model):
+    id = models.UUIDField(default=uuid.uuid4, primary_key=True)
+    name = models.CharField(max_length=128, verbose_name=_('Name'))
+    job = models.ForeignKey('ops.Job', on_delete=models.CASCADE)
+    description = models.CharField(max_length=128, verbose_name=_('Description'))
+    crontab = models.CharField(verbose_name=_("Crontab"), null=True, blank=True, max_length=128,
+                               help_text=_("5 * * * *"))
+    enabled = models.BooleanField(default=True)
+    created_by = models.CharField(max_length=128, blank=True, default='')
+    date_created = models.DateTimeField(auto_now_add=True, db_index=True)
+    _arguments_data = models.TextField(blank=True, null=True, )
+
+    @property
+    def arguments_data(self):
+        if self._arguments_data:
+            return json.loads(self._arguments_data)
+        else:
+            return {}
+
+    @arguments_data.setter
+    def arguments_data(self, item):
+        self._arguments_data = json.dumps(item)
