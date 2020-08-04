@@ -179,6 +179,7 @@
           var method = 'POST'
           var success_message = '创建成功'
         {%endblock %}
+        var redirect_url = '{% url "ops:job-list" %}'
         var props = {
           url: url,
           data: handleFormData(data),
@@ -189,6 +190,9 @@
           },
           success: function () {
             toastr.success(success_message)
+            setTimeout(function () {
+              window.location.href = redirect_url
+            }, 500)
           }
         }
         formSubmit(props);
