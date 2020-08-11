@@ -68,6 +68,9 @@
         <li id="asset-permission">
             <a href="{% url 'perms:asset-permission-list' %}">{% trans 'Asset permission' %}</a>
         </li>
+        <li id="task-permission">
+            <a href="{% url 'perms:task-permission-list' %}">{% trans '任务授权' %}</a>
+        </li>
         {% if LICENSE_VALID %}
         <li id="remote-app-permission">
             <a href="{% url 'perms:remote-app-permission-list' %}">{% trans 'RemoteApp' %}</a>
@@ -108,8 +111,8 @@
         <li id="task-management"><a href="{% url 'ops:task-management-list' %}">任务管理</a></li>
         <li id="file-task-list"><a href="{% url 'ops:file-task-list' %}"> 文件分发</a></li>
         <li id="cron-task-list"><a href="{% url 'ops:cron-task-list' %}">定时任务</a></li>
-        <li id="job-create"><a href="{% url 'ops:job-list' %}"> 工作流管理</a></li>
-        <li id="cron-job-list"><a href="{% url 'ops:cron-job-list' %}"> 定时工作流</a></li>
+        <li id="job-management"><a href="{% url 'ops:job-list' %}"> 作业管理</a></li>
+        <li id="cron-job-list"><a href="{% url 'ops:cron-job-list' %}"> 定时作业</a></li>
         <li id="command-execution"><a href="{% url 'ops:command-execution-start' %}">{% trans 'Batch command' %}</a></li>
     </ul>
 </li>

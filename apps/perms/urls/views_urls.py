@@ -23,4 +23,10 @@ urlpatterns = [
     path('remote-app-permission/<uuid:pk>/', views.RemoteAppPermissionDetailView.as_view(), name='remote-app-permission-detail'),
     path('remote-app-permission/<uuid:pk>/user/', views.RemoteAppPermissionUserView.as_view(), name='remote-app-permission-user-list'),
     path('remote-app-permission/<uuid:pk>/remote-app/', views.RemoteAppPermissionRemoteAppView.as_view(), name='remote-app-permission-remote-app-list'),
+
+
+    # task-permission
+    path('task-permission/', views.TaskPermissionListView.as_view(), name='task-permission-list'),
+    path('task-permission/create/', views.TaskPermissionCreateView.as_view(), name='task-permission-create'),
+    path('task-permission/<uuid:pk>/update/', views.AssetPermissionUpdateView.as_view(), name='task-permission-update')
 ]

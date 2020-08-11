@@ -26,6 +26,9 @@ class JobApiView(APIView):
     def get(self, request, *args, **kwargs):
         query_set = Job.objects.order_by('-date_created')
         paginator = LimitOffsetPagination()
+        search = request.query_params.get('search')
+        if search:
+            query_set = query_set.filter(name__contains=search)
         page_data = paginator.paginate_queryset(query_set, request)
         data = JobSerializer(page_data, many=True).data
         return paginator.get_paginated_response(data)

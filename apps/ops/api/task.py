@@ -61,6 +61,12 @@ class TaskManagementViewSet(OrgBulkModelViewSet):
             queryset.filter(task_type=self.request.query_params.get('task_type'))
         return queryset
 
+    def _filter_serach(self, queryset):
+        search = self.request.query_params.get('search')
+        if search:
+            queryset.filter(name__contains=search)
+        return queryset
+
     def get_queryset(self):
         queryset = self._date_filter_queryset()
         queryset = self._filter_task_type(queryset)

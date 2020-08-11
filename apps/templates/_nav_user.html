@@ -46,9 +46,15 @@
 
 {% if SECURITY_COMMAND_EXECUTION %}
 <li id="ops">
-    <a href="{% url 'ops:command-execution-start' %}">
-        <i class="fa fa-terminal" style="width: 14px"></i> <span class="nav-label">{% trans 'Command execution' %}</span><span class="label label-info pull-right"></span>
+    <a>
+        <i class="fa fa-coffee" style="width: 14px"></i> <span class="nav-label">{% trans 'Command execution' %}</span><span class="fa arrow"></span>
     </a>
+    <ul class="nav nav-second-level">
+        <li id="command-execution"><a href="{% url 'ops:command-execution-start' %}">{% trans 'Command execution' %}</a></li>
+        <li id="user-task-list"><a href="{% url 'ops:user-task-list' %}">任务执行</a></li>
+        <li id="user-job-list"><a href="{% url 'ops:user-job-list' %}">作业执行</a></li>
+    </ul>
+
 </li>
 {% endif %}
 <li id="users">

@@ -27,9 +27,7 @@
                                             {% endfor %}
                                         </select>
                                     </div>
-
                                 </form>
-
                             </div>
 
                             <table class="table table-striped table-bordered table-hover "
@@ -49,7 +47,6 @@
                                 <tbody>
                                 </tbody>
                             </table>
-
                             <div id="actions" class="hide">
                                 <div class="input-group">
                                     <select class="form-control m-b" style="width: auto" id="slct_bulk_update">
@@ -70,14 +67,11 @@
         </div>
     </div>
     </div>
-    {% include 'ops/_json_content_modal.html' %}
 {% endblock %}
 
 {% block custom_foot_js %}
     <script>
       var asset_table = 0
-      var date_from = "{{ date_from|date:'Y-m-d' }}"
-      var date_to = "{{ date_to|date:'Y-m-d' }}"
       var task_type = ''
 
       function initTable() {
@@ -135,8 +129,6 @@
       $(document).ready(function () {
         initTable()
         $('#task-type').select2()
-        $('input[name="date_from"]').val(date_from)
-        $('input[name="date_to"]').val(date_to)
       }).on('change', '#task-type', function () {
         task_type = $(this).val()
         filterData()

@@ -5,7 +5,7 @@ from django.utils.translation import ugettext as _
 from django.views import View
 from django.views.generic import TemplateView, DetailView
 from common.mixins import DatetimeSearchMixin
-from common.permissions import PermissionsMixin, IsOrgAdmin
+from common.permissions import PermissionsMixin, IsOrgAdmin, IsValidUser
 from ..models import Task, TaskMeta
 
 __all__ = [
@@ -14,11 +14,12 @@ __all__ = [
     'TaskExecutionHistoryView',
     'TaskUpdateView',
     'CronTabTaskListView',
-    'CronTabTaskCreateView'
+    'CronTabTaskCreateView',
+    'UserTaskListView'
 ]
 
 
-class TaskManagementListView(PermissionsMixin, DatetimeSearchMixin, TemplateView):
+class TaskManagementListView(PermissionsMixin, TemplateView):
     template_name = 'ops/task_management_list.html'
     permission_classes = [IsOrgAdmin]
 
@@ -26,9 +27,20 @@ class TaskManagementListView(PermissionsMixin, DatetimeSearchMixin, TemplateView
         context = {
             'app': _('Ops'),
             'action': _('任务管理'),
-            'date_from': self.date_from,
-            'date_to': self.date_to,
-            'task_type': TaskMeta.TASK_TYPE_CHOICE
+            'task_type': TaskMeta.TASK_TYPE_CHOICE,
+        }
+        kwargs.update(context)
+        return super().get_context_data(**kwargs)
+
+
+class UserTaskListView(PermissionsMixin, TemplateView):
+    template_name = 'ops/user_task_list.html'
+    permission_classes = [IsValidUser]
+
+    def get_context_data(self, **kwargs):
+        context = {
+            'app': _('Ops'),
+            'action': _('任务查看'),
         }
         kwargs.update(context)
         return super().get_context_data(**kwargs)
@@ -37,7 +49,7 @@ class TaskManagementListView(PermissionsMixin, DatetimeSearchMixin, TemplateView
 class TaskDetailInfoView(PermissionsMixin, DetailView):
     model = TaskMeta
     template_name = 'ops/task_detail_info.html'
-    permission_classes = [IsOrgAdmin]
+    permission_classes = [IsValidUser]
 
     def get_context_data(self, **kwargs):
         context = {
@@ -52,7 +64,7 @@ class TaskDetailInfoView(PermissionsMixin, DetailView):
 class TaskExecutionHistoryView(PermissionsMixin, DetailView):
     model = TaskMeta
     template_name = 'ops/task_execution_history.html'
-    permission_classes = [IsOrgAdmin]
+    permission_classes = [IsValidUser]
 
     def get_context_data(self, **kwargs):
         context = {

@@ -9,6 +9,7 @@ app_name = 'perms'
 router = routers.DefaultRouter()
 router.register('asset-permissions', api.AssetPermissionViewSet, 'asset-permission')
 router.register('remote-app-permissions', api.RemoteAppPermissionViewSet, 'remote-app-permission')
+router.register('task-permissions', api.TaskPermissionViewSet, 'task-permission')
 
 
 asset_permission_urlpatterns = [
@@ -68,7 +69,14 @@ remote_app_permission_urlpatterns = [
     path('remote-app-permissions/<uuid:pk>/remote-app/add/', api.RemoteAppPermissionAddRemoteAppApi.as_view(), name='remote-app-permission-add-remote-app'),
 ]
 
-urlpatterns = asset_permission_urlpatterns + remote_app_permission_urlpatterns
+
+task_permission_urlpatterns = [
+    # 查询某个用户授权的任务和工作流
+    path('user/task/', api.UserGrantedTasksApi.as_view(), name="user-tasks"),
+    path('user/jobs/', api.UserGrantedJobsApi.as_view(), name="user-jobs"),
+]
+
+urlpatterns = asset_permission_urlpatterns + remote_app_permission_urlpatterns + task_permission_urlpatterns
 
 urlpatterns += router.urls
 

@@ -5,7 +5,7 @@ from django.utils.translation import ugettext as _
 from django.views import View
 from django.views.generic import TemplateView, DetailView
 from common.mixins import DatetimeSearchMixin
-from common.permissions import PermissionsMixin, IsOrgAdmin
+from common.permissions import PermissionsMixin, IsOrgAdmin, IsValidUser
 from ..models import Job, TaskMeta, JobExecution
 
 __all__ = [
@@ -16,7 +16,8 @@ __all__ = [
     'JobExecutionHistoryView',
     'JobExecutionDetailView',
     'CronTabJobListView',
-    'CronTabJobCreateView'
+    'CronTabJobCreateView',
+    'UserJobView'
 ]
 
 
@@ -33,10 +34,25 @@ class JobListView(PermissionsMixin, DatetimeSearchMixin, TemplateView):
         return super().get_context_data(**kwargs)
 
 
+class UserJobView(PermissionsMixin, TemplateView):
+    template_name = 'ops/user_job_list.html'
+    permission_classes = [IsValidUser]
+
+    def get_context_data(self, **kwargs):
+        context = {
+            'app': _('Ops'),
+            'action': _('作业执行'),
+            'task_type': TaskMeta.TASK_TYPE_CHOICE,
+        }
+        kwargs.update(context)
+        return super().get_context_data(**kwargs)
+
+
+
 class JobDetailView(PermissionsMixin, DetailView):
     model = Job
     template_name = 'ops/job_detail.html'
-    permission_classes = [IsOrgAdmin]
+    permission_classes = [IsValidUser]
 
     def get_context_data(self, **kwargs):
         context = {
@@ -77,7 +93,7 @@ class JobUpdateView(PermissionsMixin, View):
 class JobExecutionHistoryView(PermissionsMixin, DetailView):
     model = Job
     template_name = 'ops/job_execution_history.html'
-    permission_classes = [IsOrgAdmin]
+    permission_classes = [IsValidUser]
 
     def get_context_data(self, **kwargs):
         context = {
@@ -91,7 +107,7 @@ class JobExecutionHistoryView(PermissionsMixin, DetailView):
 class JobExecutionDetailView(PermissionsMixin, DetailView):
     model = JobExecution
     template_name = 'ops/job_execution_detail.html'
-    permission_classes = [IsOrgAdmin]
+    permission_classes = [IsValidUser]
 
     def get_task_execution(self):
         return self.get_object().task_execute

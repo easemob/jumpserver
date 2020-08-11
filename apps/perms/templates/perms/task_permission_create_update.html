@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% load static %}
+{% load bootstrap3 %}
+{% block custom_head_css_js %}
+    <link href="{% static 'css/plugins/select2/select2.min.css' %}" rel="stylesheet">
+    <script src="{% static 'js/plugins/select2/select2.full.min.js' %}"></script>
+{% endblock %}
+
+{% block content %}
+    <div class="wrapper wrapper-content animated fadeInRight">
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="ibox float-e-margins">
+                    <div class="ibox-title">
+                        <h5>{{ action }}</h5>
+                        <div class="ibox-tools">
+                            <a class="collapse-link">
+                                <i class="fa fa-chevron-up"></i>
+                            </a>
+                            <a class="dropdown-toggle" data-toggle="dropdown" href="#">
+                                <i class="fa fa-wrench"></i>
+                            </a>
+                            <a class="close-link">
+                                <i class="fa fa-times"></i>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="ibox-content">
+                        <form method="post" class="form-horizontal" action="" >
+                            {% if form.non_field_errors %}
+                                 <div class="alert alert-danger">
+                                     {{ form.non_field_errors }}
+                                 </div>
+                            {% endif %}
+                            {% csrf_token %}
+                            <h3>{% trans 'Basic' %}</h3>
+                            {% bootstrap_field form.name layout="horizontal" %}
+                            <div class="hr-line-dashed"></div>
+                            <h3>{% trans 'User' %}</h3>
+                            {% bootstrap_field form.users layout="horizontal" %}
+                            {% bootstrap_field form.user_groups layout="horizontal" %}
+                            <div class="hr-line-dashed"></div>
+                            <h3>{% trans 'Task' %}</h3>
+                            {% bootstrap_field form.tasks layout="horizontal" %}
+                            {% bootstrap_field form.jobs layout="horizontal" %}
+                            <div class="hr-line-dashed"></div>
+                            <h3>{% trans 'Other' %}</h3>
+                            {% bootstrap_field form.comment layout="horizontal" %}
+
+                            <div class="form-group">
+                                <div class="col-sm-4 col-sm-offset-2">
+                                    <button class="btn btn-white" type="reset">{% trans 'Reset' %}</button>
+                                    <button id="submit_button" class="btn btn-primary" type="submit">{% trans 'Submit' %}</button>
+                                </div>
+                            </div>
+
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+{% block custom_foot_js %}
+
+<script>
+var dateOptions = {
+    singleDatePicker: true,
+    showDropdowns: true,
+    timePicker: true,
+    timePicker24Hour: true,
+    autoApply: true,
+    locale: {
+        format: 'YYYY-MM-DD HH:mm'
+    }
+};
+var api_action =  "{{ api_action }}";
+$(document).ready(function () {
+    $('.select2').select2({
+        closeOnSelect: false
+    });
+
+})
+.on("submit", "form", function (evt) {
+    evt.preventDefault();
+    var the_url = '{% url 'api-perms:task-permission-list' %}';
+    var method = "POST";
+    {% if api_action == "update" %}
+        the_url = '{% url 'api-perms:task-permission-detail' pk=object.id %}';
+        method = "PUT";
+    {% endif %}
+    var redirect_to = '{% url "perms:task-permission-list" %}';
+    var form = $("form");
+    var data = form.serializeObject();
+    objectAttrsIsList(data, ['users', 'user_groups', 'tasks', 'jobs']);
+    console.log(data)
+    var props = {
+        url: the_url,
+        data: data,
+        method: method,
+        form: form,
+        redirect_to: redirect_to
+    };
+    formSubmit(props);
+ })
+</script>
+{% endblock %}

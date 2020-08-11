@@ -27,6 +27,7 @@ urlpatterns = [
 
     path('task-argument', views.ArgumentManagerListView.as_view(), name='task-argument-list'),
     path('task-management', views.TaskManagementListView.as_view(), name='task-management-list'),
+    path('user/tasks/', views.UserTaskListView.as_view(), name='user-task-list'),
 
     path('file-task/', views.FileTaskListView.as_view(), name='file-task-list'),
     path('file-task/create', views.FileTaskCreateView.as_view(), name='file-task-create'),
@@ -37,10 +38,12 @@ urlpatterns = [
     path('job/detail/<uuid:pk>', views.JobDetailView.as_view(), name='job-detail'),
     path('job/<uuid:pk>/execution/history/', views.JobExecutionHistoryView.as_view(), name='job-execution-history'),
     path('job/execution/<uuid:pk>/detail/', views.JobExecutionDetailView.as_view(), name='job-execution-detail'),
+    path('user/jobs/', views.UserJobView.as_view(), name='user-job-list'),
 
     path('crontab/job/', views.CronTabJobListView.as_view(), name='cron-job-list'),
     path('crontab/job/<uuid:pk>/create', views.CronTabJobCreateView.as_view(), name='cron-job-create'),
     path('crontab/task/', views.CronTabTaskListView.as_view(), name='cron-task-list'),
     path('task/crontab/<uuid:pk>/create', views.CronTabTaskCreateView.as_view(), name='cron-task-create'),
+
 
 ]

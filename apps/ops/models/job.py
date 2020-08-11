@@ -139,6 +139,9 @@ class Job(models.Model):
         self.start_job_task_id = job_task_id
         self.save()
 
+    def __str__(self):
+        return '{0.name}({0.description})'.format(self)
+
 
 class CrontabJob(models.Model):
     id = models.UUIDField(default=uuid.uuid4, primary_key=True)

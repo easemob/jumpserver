@@ -39,6 +39,9 @@ class TaskMeta(models.Model):
     def task_executions(self):
         return TaskExecution.objects.filter(task_meta=self.id)
 
+    def __str__(self):
+        return '{0.name}({0.description})[{0.task_type}]'.format(self)
+
 
 class CrontabTask(models.Model):
     id = models.UUIDField(default=uuid.uuid4, primary_key=True)
