@@ -512,19 +512,26 @@ def sync_billing_info_manual(bill_cycle=None, page_size=100):
         "云虚拟主机": "hosting"
     }
 
+    other_products_result = dict()
     for pi in ali_util.get_bill_overview(billing_cycle=bill_cycle)['Data']['Items']['Item']:
-
         if pi["ProductName"] in other_products.keys():
             if "ProductCode" not in pi.keys():
                 pi["ProductCode"] = other_products[pi["ProductName"]]
 
+            if pi["ProductCode"] in other_products_result.keys():
+                other_products_result[pi["ProductCode"]]["defaults"]["payment_amount"] += pi["PaymentAmount"]
+                continue
+
             row_data = {
-                'instance_id': bill_cycle + "-" + other_products[pi["ProductName"]],
+                'instance_id': bill_cycle + "-" + pi["ProductCode"],
                 'cycle': bill_cycle,
                 'product_code': pi["ProductCode"],
                 'defaults': dict(payment_amount=pi["PaymentAmount"], product_name=pi["ProductName"])
             }
-            Billing.objects.update_or_create(**row_data)
+            other_products_result[pi["ProductCode"]] = row_data
+
+    for k, v in other_products_result.items():
+        Billing.objects.update_or_create(**v)
 
     logger.info(f'sync {bill_cycle} billing domian from overview end . ')
 
